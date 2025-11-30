@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Print styles for the invoice */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  body {
+    height: 0;
+    overflow: visible;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #invoice-preview, #invoice-preview * {
+    visibility: visible;
+  }
+  #invoice-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+    transform: none !important;
+    overflow: visible !important;
+    z-index: 9999;
+  }
+  .no-print {
+    display: none;
+  }
+}
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', sans-serif;
+    --font-merriweather: 'Merriweather', serif;
+    --font-playfair: 'Playfair Display', serif;
+    --font-lato: 'Lato', sans-serif;
+  }
+}
