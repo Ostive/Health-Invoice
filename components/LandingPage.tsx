@@ -13,6 +13,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, onOpenLegal }) => {
    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
    // Lock body scroll when mobile menu is open
    useEffect(() => {
@@ -134,7 +135,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                      <Button onClick={onRegister} className="px-8 py-4 text-lg rounded-full shadow-xl shadow-primary-600/20 hover:shadow-2xl hover:shadow-primary-600/30 hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
                         Commencer l'essai gratuit
                      </Button>
-                     <button onClick={onLogin} className="px-8 py-4 text-lg font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
+                     <button onClick={() => setIsVideoOpen(true)} className="px-8 py-4 text-lg font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Voir la démo
                      </button>
@@ -442,6 +443,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                </div>
             </div>
          </footer>
+
+         {/* Video Modal */}
+         {isVideoOpen && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-300" onClick={() => setIsVideoOpen(false)}>
+               <div className="relative w-full max-w-6xl aspect-video bg-slate-950 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+                  <button
+                     onClick={() => setIsVideoOpen(false)}
+                     className="absolute top-4 right-4 md:top-6 md:right-6 text-white/50 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full p-2 transition-all z-10"
+                  >
+                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+
+                  {/* Placeholder for Video - Replace with iframe or video tag */}
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900 relative overflow-hidden">
+                     {/* Animated Background */}
+                     <div className="absolute inset-0 opacity-20">
+                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.1),transparent_50%)]"></div>
+                     </div>
+
+                     <div className="relative z-10 flex flex-col items-center">
+                        <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 ring-1 ring-white/10 shadow-xl backdrop-blur-sm">
+                           <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Démonstration Vidéo</h3>
+                        <p className="text-slate-400">La vidéo de présentation sera bientôt disponible.</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
    );
 };
