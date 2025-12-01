@@ -57,6 +57,28 @@ export const manageSubscription = async (userId: string) => {
     }
 };
 
+export const reactivateSubscription = async (userId: string) => {
+    try {
+        const response = await fetch('/api/stripe/reactivate-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || 'Failed to reactivate subscription');
+        }
+
+        return true;
+    } catch (error: any) {
+        console.error('Error reactivating subscription:', error);
+        throw error;
+    }
+};
+
 export const PLAN_LIMITS = {
     free: {
         maxInvoices: 3,

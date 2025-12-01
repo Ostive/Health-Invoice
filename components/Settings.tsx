@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile } from '../types';
 import { Button } from './ui/button';
-import { manageSubscription, subscribeToPro } from '../services/stripeService';
+import { manageSubscription, subscribeToPro, reactivateSubscription } from '../services/stripeService';
 
 import { ToastType } from './ui/toast';
 
@@ -241,6 +241,21 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
                   <p className="text-slate-500 text-lg">Choisissez le plan adapté à votre activité et simplifiez votre facturation.</p>
                 </div>
 
+                {/* Subscription Ended Alert */}
+                {!profile?.is_pro && profile?.stripe_customer_id && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-8">
+                    <div className="p-1 bg-amber-100 rounded-full text-amber-600 shrink-0">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-amber-800">Votre abonnement a pris fin</h4>
+                      <p className="text-amber-700 text-sm mt-1">
+                        Votre accès PRO est terminé. Réabonnez-vous ci-dessous pour retrouver immédiatement tous vos avantages et votre historique illimité.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Current Subscription Status Card - Only for PRO users */}
                 {profile?.is_pro && (
                   <div className={`bg-gradient-to-br ${profile.cancel_at_period_end ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-emerald-50 to-teal-50 border-emerald-200'} border rounded-2xl p-6 shadow-sm mb-8 relative overflow-hidden`}>
@@ -282,7 +297,23 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
                         </div>
                       </div>
                       <Button
-                        onClick={() => profile?.id && manageSubscription(profile.id)}
+                        onClick={async () => {
+                          if (!profile?.id) return;
+                          if (profile.cancel_at_period_end) {
+                            setIsSaving(true);
+                            try {
+                              await reactivateSubscription(profile.id);
+                              onUpdate();
+                              onShowToast('Abonnement réactivé avec succès !', 'success');
+                            } catch (err: any) {
+                              onShowToast("Erreur lors de la réactivation : " + err.message, 'error');
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          } else {
+                            manageSubscription(profile.id);
+                          }
+                        }}
                         variant="outline"
                         className={`bg-white shadow-sm w-full md:w-auto justify-center ${profile.cancel_at_period_end ? 'border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'}`}
                         disabled={isSaving}

@@ -157,10 +157,19 @@ export async function POST(req: Request) {
                 const customerId = subscription.customer as string
                 const subscriptionId = subscription.id
 
-
-
                 // Update subscription status based on Stripe status
                 const isPro = ['active', 'trialing'].includes(subscription.status)
+
+                // Safely handle date conversion
+                let currentPeriodEnd;
+                try {
+                    const periodEnd = (subscription as any).current_period_end;
+                    if (periodEnd) {
+                        currentPeriodEnd = new Date(periodEnd * 1000).toISOString();
+                    }
+                } catch (e) {
+                    console.error('Error parsing date:', e);
+                }
 
                 const { error } = await supabase
                     .from('profiles')
@@ -168,14 +177,12 @@ export async function POST(req: Request) {
                         is_pro: isPro,
                         stripe_subscription_id: subscriptionId,
                         cancel_at_period_end: subscription.cancel_at_period_end,
-                        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString()
+                        current_period_end: currentPeriodEnd
                     })
                     .eq('stripe_customer_id', customerId)
 
                 if (error) {
-
-                } else {
-
+                    console.error('Supabase update error:', error);
                 }
                 break
             }
@@ -184,42 +191,36 @@ export async function POST(req: Request) {
                 const subscription = event.data.object as Stripe.Subscription
                 const customerId = subscription.customer as string
 
-
-
                 // Downgrade to free plan
                 const { error } = await supabase
                     .from('profiles')
                     .update({
                         is_pro: false,
-                        stripe_subscription_id: null
+                        stripe_subscription_id: null,
+                        cancel_at_period_end: false
                     })
                     .eq('stripe_customer_id', customerId)
 
                 if (error) {
-
-                } else {
-
+                    console.error('Supabase update error (deleted):', error);
                 }
                 break
             }
 
             case 'invoice.payment_succeeded': {
-                const invoice = event.data.object as Stripe.Invoice
-
+                // const invoice = event.data.object as Stripe.Invoice
                 // You can send email notifications here or log successful payments
                 break
             }
 
             case 'invoice.payment_failed': {
-                const invoice = event.data.object as Stripe.Invoice
-
+                // const invoice = event.data.object as Stripe.Invoice
                 // You can send email notifications here or handle failed payments
-                // Optionally downgrade user if payment repeatedly fails
                 break
             }
 
             default:
-
+            // Unhandled event type
         }
 
         // Record processed event
@@ -228,8 +229,8 @@ export async function POST(req: Request) {
             .insert({ event_id: event.id })
 
     } catch (error: any) {
-
-        return new NextResponse('Webhook handler failed', { status: 500 })
+        console.error('Webhook handler failed:', error);
+        return new NextResponse(`Webhook handler failed: ${error.message}`, { status: 500 })
     }
 
 
