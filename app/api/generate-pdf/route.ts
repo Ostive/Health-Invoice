@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { getInvoicePDFTemplate } from '@/lib/pdf-templates';
 import { Invoice, UserProfile } from '@/types';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
     try {
@@ -14,17 +15,28 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { invoice, profile } = await req.json();
+        // Check Rate Limit
+        const { success, message } = await checkRateLimit(user.id, 'GENERATE_PDF');
+        if (!success) {
+            return NextResponse.json({ error: message }, { status: 429 });
+        }
+
+        const { invoice } = await req.json();
 
         if (!invoice) {
             return NextResponse.json({ error: 'Invoice data is required' }, { status: 400 });
         }
 
+        // Fetch profile directly from database to prevent impersonation
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
 
-
-
-
-
+        if (profileError || !profile) {
+            return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+        }
 
         // Get the appropriate template document
         const pdfDocument = getInvoicePDFTemplate(

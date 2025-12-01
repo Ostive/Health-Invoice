@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedInvoiceData } from "@/types/index";
+import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { logAuditAction } from '@/lib/audit';
 
 export async function POST(req: Request) {
     try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { text } = await req.json();
 
         if (!text) {
@@ -21,6 +31,12 @@ export async function POST(req: Request) {
                 { error: "Configuration serveur manquante (Clé API Gemini)" },
                 { status: 500 }
             );
+        }
+
+        // Check Rate Limit
+        const { success, message } = await checkRateLimit(user.id, 'GENERATE_INVOICE_AI');
+        if (!success) {
+            return NextResponse.json({ error: message }, { status: 429 });
         }
 
         const ai = new GoogleGenAI({ apiKey });
@@ -68,6 +84,15 @@ export async function POST(req: Request) {
         }
 
         const data = JSON.parse(jsonText) as GeneratedInvoiceData;
+
+        // Log Audit Action (Async)
+        logAuditAction({
+            action: 'GENERATE_INVOICE_AI',
+            resourceType: 'invoice',
+            userId: user.id,
+            details: { promptLength: text.length }
+        });
+
         return NextResponse.json(data);
 
     } catch (error: any) {

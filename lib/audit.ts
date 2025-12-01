@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
 export type AuditAction =
@@ -8,6 +8,7 @@ export type AuditAction =
     | 'DELETE_INVOICE'
     | 'BATCH_DELETE_INVOICES'
     | 'GENERATE_PDF'
+    | 'GENERATE_INVOICE_AI'
     | 'EXPORT_DATA';
 
 export type ResourceType = 'invoice' | 'folder' | 'user' | 'subscription';
@@ -28,12 +29,18 @@ export async function logAuditAction({
     userId,
 }: LogAuditParams) {
     try {
-        const supabase = await createClient();
         const headersList = await headers();
         const ip = headersList.get('x-forwarded-for') || 'unknown';
         const userAgent = headersList.get('user-agent') || 'unknown';
 
-        const { error } = await supabase.from('audit_logs').insert({
+        // Use service role key to bypass RLS and ensure integrity
+        // This prevents users from spoofing logs via client-side calls
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const { error } = await supabaseAdmin.from('audit_logs').insert({
             user_id: userId,
             action,
             resource_type: resourceType,

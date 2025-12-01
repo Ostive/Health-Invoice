@@ -9,7 +9,10 @@ if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
 
 export function encrypt(text: string): string {
     if (!text) return text;
-    if (!ENCRYPTION_KEY) return text; // Fallback if key is missing (dev mode)
+
+    if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
+        throw new Error('CRITICAL SECURITY ERROR: ENCRYPTION_KEY is missing or invalid. Cannot encrypt sensitive data.');
+    }
 
     try {
         const iv = crypto.randomBytes(IV_LENGTH);
@@ -19,7 +22,7 @@ export function encrypt(text: string): string {
         return iv.toString('hex') + ':' + encrypted.toString('hex');
     } catch (error) {
         console.error('Encryption failed:', error);
-        return text;
+        throw new Error('Encryption failed');
     }
 }
 

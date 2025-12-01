@@ -183,6 +183,7 @@ export async function POST(req: Request) {
 
                 if (error) {
                     console.error('Supabase update error:', error);
+                    throw new Error(`Database update failed: ${error.message}`);
                 }
                 break
             }
@@ -203,6 +204,7 @@ export async function POST(req: Request) {
 
                 if (error) {
                     console.error('Supabase update error (deleted):', error);
+                    throw new Error(`Database update failed: ${error.message}`);
                 }
                 break
             }
@@ -224,9 +226,13 @@ export async function POST(req: Request) {
         }
 
         // Record processed event
-        await supabase
+        const { error: eventError } = await supabase
             .from('processed_events')
             .insert({ event_id: event.id })
+
+        if (eventError) {
+            console.error('Error recording processed event:', eventError);
+        }
 
     } catch (error: any) {
         console.error('Webhook handler failed:', error);
