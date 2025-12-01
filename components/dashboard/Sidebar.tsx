@@ -1,97 +1,42 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { Invoice, InvoiceStatus, UserProfile, Folder } from '../../types/index';
+import { InvoiceStatus } from '../../types/index';
 import { PLAN_LIMITS } from '../../services/stripeService';
 import { getFolderColorClass, getFolderBgClass } from './modals/FolderModal';
-import { User } from '@supabase/supabase-js';
+import { useDashboard } from './DashboardContext';
 
 interface SidebarProps {
     onClose?: () => void;
-    profile: UserProfile | null;
-    invoices: Invoice[];
-    handleNewInvoice: () => void;
-    isBusy: boolean;
-    selectedFolderIds: Set<string>;
-    handleBulkDeleteFolders: () => void;
-    handleCreateFolderClick: () => void;
-    folderSearchQuery: string;
-    setFolderSearchQuery: (q: string) => void;
-    setSelectedFolderId: (id: string | null) => void;
-    selectedFolderId: string | null;
-    folders: Folder[];
-    toggleFolderSelection: (id: string) => void;
-    handleEditFolder: (f: Folder, e: React.MouseEvent) => void;
-    handleDeleteFolder: (f: Folder, e: React.MouseEvent) => void;
-    searchQuery: string;
-    setSearchQuery: (q: string) => void;
-    showDateFilter: boolean;
-    setShowDateFilter: (show: boolean) => void;
-    dateRange: { start: string; end: string };
-    setDateRange: (range: { start: string; end: string }) => void;
-    selectedInvoiceIds: Set<string>;
-    displayedInvoices: Invoice[];
-    toggleSelectAll: () => void;
-    handleBulkDelete: () => void;
-    isDeletingInvoice: boolean;
-    isLoadingList: boolean;
-    fetchError: string | null;
-    handleInvoiceSelect: (inv: Invoice) => void;
-    currentInvoice: Invoice | null;
-    showSettings?: boolean;
-    toggleInvoiceSelection: (id: string) => void;
-    promptDelete: (id: string, e: React.MouseEvent) => void;
-    setShowUpgradeModal: (show: boolean) => void;
-    userMenuRef: React.RefObject<HTMLDivElement | null>;
-    userMenuOpen: boolean;
-    setUserMenuOpen: (open: boolean) => void;
-    user: User;
-    handleOpenSettings: () => void;
-    onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-    onClose,
-    profile,
-    invoices,
-    handleNewInvoice,
-    isBusy,
-    selectedFolderIds,
-    handleBulkDeleteFolders,
-    handleCreateFolderClick,
-    folderSearchQuery,
-    setFolderSearchQuery,
-    setSelectedFolderId,
-    selectedFolderId,
-    folders,
-    toggleFolderSelection,
-    handleEditFolder,
-    handleDeleteFolder,
-    searchQuery,
-    setSearchQuery,
-    showDateFilter,
-    setShowDateFilter,
-    dateRange,
-    setDateRange,
-    selectedInvoiceIds,
-    displayedInvoices,
-    toggleSelectAll,
-    handleBulkDelete,
-    isDeletingInvoice,
-    isLoadingList,
-    fetchError,
-    handleInvoiceSelect,
-    currentInvoice,
-    showSettings,
-    toggleInvoiceSelection,
-    promptDelete,
-    setShowUpgradeModal,
-    userMenuRef,
-    userMenuOpen,
-    setUserMenuOpen,
-    user,
-    handleOpenSettings,
-    onLogout
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+    const {
+        user, profile, invoices, folders, currentInvoice,
+        isLoadingList, isBusy, fetchError,
+        selectedInvoiceIds, selectedFolderIds, selectedFolderId, setSelectedFolderId,
+        searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
+        showDateFilter, setShowDateFilter, dateRange, setDateRange, displayedInvoices,
+        handleNewInvoice, handleInvoiceSelect,
+        handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
+        handleEditFolder, handleDeleteFolderClick,
+        promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
+        setShowUpgradeModal, handleOpenSettings, onLogout
+    } = useDashboard();
+
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // Skeleton Loader Component
     const SkeletonInvoiceItem = () => (
         <div className="flex flex-col p-3 rounded-lg border border-slate-100 bg-white mb-1">
@@ -205,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <button onClick={(e) => !isBusy && handleEditFolder(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-primary-600 rounded disabled:opacity-50 transition-colors" title="Modifier">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </button>
-                                <button onClick={(e) => !isBusy && handleDeleteFolder(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-red-600 rounded disabled:opacity-50 transition-colors" title="Supprimer">
+                                <button onClick={(e) => !isBusy && handleDeleteFolderClick(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-red-600 rounded disabled:opacity-50 transition-colors" title="Supprimer">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                             </div>
@@ -274,14 +219,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <input
                                 type="checkbox"
                                 checked={selectedInvoiceIds.size === displayedInvoices.length && displayedInvoices.length > 0}
-                                onChange={toggleSelectAll}
+                                onChange={toggleSelectAllInvoices}
                                 className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                             />
                             <span className="text-primary-600">{selectedInvoiceIds.size} sélectionné(s)</span>
                             <div className="flex-1"></div>
                             <button
-                                onClick={handleBulkDelete}
-                                disabled={isDeletingInvoice}
+                                onClick={handleBulkDeleteInvoices}
+                                disabled={isBusy} // Assuming isBusy covers deleting invoices
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -295,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     <input
                                         type="checkbox"
                                         checked={false}
-                                        onChange={toggleSelectAll}
+                                        onChange={toggleSelectAllInvoices}
                                         className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 opacity-50 hover:opacity-100 transition-opacity"
                                         title="Tout sélectionner"
                                     />
@@ -337,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div
                                 key={inv.id}
                                 onClick={() => handleInvoiceSelect(inv)}
-                                className={`group relative flex flex-col p-3 rounded-lg cursor-pointer border transition-all duration-200 ${currentInvoice?.id === inv.id && !showSettings
+                                className={`group relative flex flex-col p-3 rounded-lg cursor-pointer border transition-all duration-200 ${currentInvoice?.id === inv.id
                                     ? 'bg-primary-50 border-primary-200 shadow-sm z-10'
                                     : selectedInvoiceIds.has(inv.id)
                                         ? 'bg-primary-50/50 border-primary-100'
@@ -352,7 +297,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             onChange={(e) => { e.stopPropagation(); toggleInvoiceSelection(inv.id); }}
                                             className={`rounded border-slate-300 text-primary-600 focus:ring-primary-500 transition-opacity ${selectedInvoiceIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                         />
-                                        <span className={`font-medium text-sm truncate ${currentInvoice?.id === inv.id && !showSettings ? 'text-primary-900' : 'text-slate-900'}`}>{inv.client.name || 'Sans nom'}</span>
+                                        <span className={`font-medium text-sm truncate ${currentInvoice?.id === inv.id ? 'text-primary-900' : 'text-slate-900'}`}>{inv.client.name || 'Sans nom'}</span>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -374,7 +319,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     </div>
                                 </div>
                                 <button
-                                    onClick={(e) => promptDelete(inv.id, e)}
+                                    onClick={(e) => promptDeleteInvoice(inv.id, e)}
                                     className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all md:opacity-0 md:group-hover:opacity-100 opacity-100"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -400,11 +345,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="relative" ref={userMenuRef}>
                     <button onClick={() => setUserMenuOpen(!userMenuOpen)} className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all border ${userMenuOpen ? 'bg-white border-primary-200 shadow-md ring-2 ring-primary-100' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm hover:border-slate-200'}`}>
                         <div className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-primary-700 font-bold text-sm shadow-sm">
-                            {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : user.email?.substring(0, 2).toUpperCase()}
+                            {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : user?.email?.substring(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1 overflow-hidden text-left">
                             <p className="text-sm font-semibold text-slate-900 truncate">{profile?.full_name || 'Utilisateur'}</p>
-                            <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+                            <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
                         </div>
                         <div className="text-slate-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg></div>
                     </button>

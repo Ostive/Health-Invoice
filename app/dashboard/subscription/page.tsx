@@ -1,13 +1,23 @@
-import { redirect } from 'next/navigation'
-import { getUser, getSession } from '@/lib/supabase/server'
-import { DashboardClient } from '../DashboardClient'
+'use client'
 
-export default async function SubscriptionPage() {
-    const { user } = await getUser()
+import { useDashboard } from '@/components/dashboard/DashboardContext'
+import { Settings } from '@/components/Settings'
+import { useRouter } from 'next/navigation'
 
-    if (!user) {
-        redirect('/')
-    }
+export default function SubscriptionPage() {
+    const { profile, refreshProfile, setToast } = useDashboard()
+    const router = useRouter()
 
-    return <DashboardClient initialUser={user} initialView="subscription" />
+    return (
+        <Settings
+            profile={profile}
+            onUpdate={refreshProfile}
+            onClose={() => router.push('/dashboard')}
+            onShowToast={(message, type) => setToast({ message, type })}
+            activeSection="subscription"
+            onSectionChange={(section) => {
+                if (section === 'general') router.push('/dashboard/parameter')
+            }}
+        />
+    )
 }

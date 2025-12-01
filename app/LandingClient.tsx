@@ -14,7 +14,7 @@ export function LandingClient() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[#FDFDFD]">
+    <>
       <LandingPage
         onLogin={() => setAuthMode('login')}
         onRegister={() => setAuthMode('register')}
@@ -34,6 +34,6 @@ export function LandingClient() {
           onClose={() => setLegalView(null)}
         />
       )}
-    </div>
+    </>
   )
 }

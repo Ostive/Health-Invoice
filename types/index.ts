@@ -55,6 +55,8 @@ export interface UserProfile {
     adeli?: string;
     cancel_at_period_end?: boolean;
     current_period_end?: string;
+    invoice_counter?: number;
+    last_invoice_year?: number;
 }
 
 // For Gemini Generation

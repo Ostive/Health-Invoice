@@ -42,18 +42,21 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
 
   const translateError = (errorMsg: string) => {
     if (errorMsg.includes("Invalid login credentials")) {
-      return "Oups ! Email ou mot de passe incorrect. Réessayez ?"
+      return "Identifiants incorrects. Vérifiez votre email et mot de passe."
     }
     if (errorMsg.includes("User already registered")) {
-      return "Ce compte existe déjà. Connectez-vous !"
+      return "Ce compte existe déjà. Connectez-vous directement !"
     }
     if (errorMsg.includes("Password should be at least")) {
-      return "Le mot de passe doit contenir au moins 6 caractères."
+      return "Le mot de passe est un peu court (6 caractères min)."
     }
     if (errorMsg.includes("Email not confirmed")) {
-      return "Veuillez confirmer votre email avant de vous connecter."
+      return "Votre email n'est pas confirmé. Vérifiez votre boîte de réception."
     }
-    return "Une erreur est survenue. Veuillez réessayer."
+    if (errorMsg.includes("Rate limit")) {
+      return "Trop de tentatives. Veuillez patienter quelques instants."
+    }
+    return "Une petite erreur technique est survenue. Veuillez réessayer."
   }
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -77,12 +80,12 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
         }
 
         if (data.session) {
-          setMessage("Inscription réussie ! Connexion en cours...");
+          setMessage("Bienvenue ! Connexion en cours...");
           window.location.href = '/dashboard';
           return;
         }
 
-        setMessage("Inscription réussie ! Redirection vers la connexion...");
+        setMessage("Compte créé ! Redirection vers la connexion...");
         setTimeout(() => {
           setMode('login');
           setMessage(null);
@@ -114,7 +117,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
           redirectTo: `${window.location.origin}/auth/callback`,
         })
         if (error) throw error
-        setMessage("Si cet email existe, un lien de réinitialisation a été envoyé.")
+        setMessage("Si cet email est enregistré, vous recevrez un lien magique.")
       }
     } catch (err: any) {
       setError(translateError(err.message || ""))
@@ -134,7 +137,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
         id: 'email',
         label: 'Email professionnel',
         type: 'email',
-        placeholder: 'vous@cabinet.fr',
+        placeholder: 'exemple@cabinet.fr',
         value: email,
         setValue: setEmail,
         iconPath: "M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207",
@@ -157,11 +160,9 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
           <button
             type="button"
             onClick={() => setMode('forgot_password')}
-            className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 transition-colors"
-            title="Réinitialiser le mot de passe"
+            className="text-xs text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Oublié ?
+            Mot de passe oublié ?
           </button>
         ) : undefined
       })
@@ -172,18 +173,18 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
 
   const renderTitle = () => {
     const titles = {
-      login: 'Connexion',
+      login: 'Bon retour !',
       register: 'Créer un compte',
-      forgot_password: 'Mot de passe oublié'
+      forgot_password: 'Réinitialisation'
     }
     return titles[mode]
   }
 
   const renderSubtitle = () => {
     const subtitles = {
-      login: 'Accédez à votre espace sécurisé',
-      register: 'Commencez votre essai gratuit de 14 jours',
-      forgot_password: 'Entrez votre email pour réinitialiser'
+      login: 'Connectez-vous pour gérer vos factures',
+      register: 'Rejoignez-nous pour simplifier votre gestion',
+      forgot_password: 'Nous allons vous aider à récupérer votre accès'
     }
     return subtitles[mode]
   }
@@ -192,37 +193,39 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
     if (isLoading) return "Chargement..."
     const buttons = {
       login: 'Se connecter',
-      register: "S'inscrire",
+      register: "Commencer gratuitement",
       forgot_password: 'Envoyer le lien'
     }
     return buttons[mode]
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative my-8">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative my-8 border border-slate-100 transform transition-all">
         {onClose && (
-          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-50 rounded-full">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         )}
 
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-4 shadow-lg shadow-primary-600/30">F</div>
-          <h2 className="text-2xl font-bold text-slate-900">{renderTitle()}</h2>
+          <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-5 shadow-lg shadow-primary-500/30 transform rotate-3">
+            F
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{renderTitle()}</h2>
           <p className="text-slate-500 text-sm mt-2">{renderSubtitle()}</p>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-5">
           {getFields().map((field) => (
             <div key={field.id}>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-slate-700">{field.label}</label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-sm font-semibold text-slate-700">{field.label}</label>
                 {field.extraLabelContent}
               </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                  <svg className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={field.iconPath} />
                   </svg>
                 </div>
@@ -232,7 +235,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
                   minLength={field.minLength}
                   value={field.value}
                   onChange={(e) => field.setValue(e.target.value)}
-                  className="w-full pl-10 border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-10 border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder={field.placeholder}
                   autoComplete={field.autoComplete}
                   disabled={isLoading}
@@ -247,28 +250,32 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
               type="button"
               onClick={fillDemoCredentials}
               disabled={isLoading}
-              className="w-full py-2 text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-700 rounded-lg transition-colors flex items-center justify-center gap-2 border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-primary-600 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200 border-dashed hover:border-primary-200 hover:border-solid disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-              Remplir compte test (Démo)
+              <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+              Remplir compte de démonstration
             </button>
           )}
 
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-100 flex items-start gap-2">
-              <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span className="text-red-600 text-sm">{error}</span>
+            <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="bg-red-100 p-1 rounded-full shrink-0">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <span className="text-red-700 text-sm font-medium pt-0.5">{error}</span>
             </div>
           )}
 
           {message && (
-            <div className="p-3 rounded-lg bg-green-50 border border-green-100 flex items-start gap-2">
-              <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span className="text-green-600 text-sm">{message}</span>
+            <div className="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="bg-green-100 p-1 rounded-full shrink-0">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <span className="text-green-700 text-sm font-medium pt-0.5">{message}</span>
             </div>
           )}
 
-          <Button type="submit" className="w-full py-3 text-base shadow-lg shadow-primary-500/20" isLoading={isLoading}>
+          <Button type="submit" className="w-full py-3.5 text-base font-semibold shadow-xl shadow-primary-500/20 hover:shadow-primary-500/30 transition-all active:scale-[0.98]" isLoading={isLoading}>
             {renderButtonText()}
           </Button>
         </form>
@@ -277,7 +284,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
           {mode === 'login' && (
             <>
               Pas encore de compte ?
-              <button onClick={() => setMode('register')} disabled={isLoading} className="text-primary-600 font-bold hover:underline ml-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setMode('register')} disabled={isLoading} className="text-primary-600 font-bold hover:text-primary-700 hover:underline ml-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Créer un compte
               </button>
             </>
@@ -285,13 +292,13 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
           {mode === 'register' && (
             <>
               Déjà inscrit ?
-              <button onClick={() => setMode('login')} disabled={isLoading} className="text-primary-600 font-bold hover:underline ml-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setMode('login')} disabled={isLoading} className="text-primary-600 font-bold hover:text-primary-700 hover:underline ml-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Se connecter
               </button>
             </>
           )}
           {mode === 'forgot_password' && (
-            <button onClick={() => setMode('login')} disabled={isLoading} className="text-primary-600 font-bold hover:underline flex items-center justify-center gap-1 w-full disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={() => setMode('login')} disabled={isLoading} className="text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-2 w-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               Retour à la connexion
             </button>
