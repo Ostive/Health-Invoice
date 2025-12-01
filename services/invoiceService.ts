@@ -175,9 +175,7 @@ export const InvoiceService = {
    * Save an invoice using API
    */
   async save(invoice: Invoice, userId: string): Promise<Invoice> {
-    console.log('[InvoiceService] Saving invoice, input:', invoice);
     const payload = mapInvoiceToPayload(invoice, userId);
-    console.log('[InvoiceService] Mapped payload:', payload);
 
     try {
       const response = await fetch('/api/invoices', {

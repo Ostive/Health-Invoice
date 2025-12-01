@@ -104,7 +104,7 @@ export async function POST(request: Request) {
             ...(!invoice.id && { created_at: new Date().toISOString() })
         }
 
-        console.log('API: Saving invoice payload:', JSON.stringify(payload, null, 2));
+
 
         const { data, error } = await supabase
             .from('invoices')
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
             .select()
             .single()
 
-        console.log('API: Saved invoice result:', JSON.stringify(data, null, 2));
+
         if (error) console.error('API: Error saving invoice:', error);
 
         if (error) {

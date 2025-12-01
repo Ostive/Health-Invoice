@@ -13,7 +13,7 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Supabase configuration error');
 }
 
-console.log('Supabase URL:', supabaseUrl); // Debug log
+
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {

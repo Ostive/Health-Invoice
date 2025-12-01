@@ -9,6 +9,7 @@ import { Toast } from '../ui/toast';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 import { FolderModal } from './modals/FolderModal';
 import { DeleteFolderConfirmationModal } from './modals/DeleteFolderConfirmationModal';
+import { BulkDeleteConfirmationModal } from './modals/BulkDeleteConfirmationModal';
 import { Button } from '../ui/button';
 import { PLAN_LIMITS } from '../../services/stripeService';
 
@@ -26,6 +27,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         showUpgradeModal, setShowUpgradeModal, handleStartUpgrade,
         showOnboarding, setShowOnboarding, refreshProfile,
         toast, setToast,
+        // Bulk Delete Props
+        showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
         // Sidebar actions
         handleNewInvoice, handleBulkDeleteFolders, handleCreateFolderClick,
         setFolderSearchQuery, setSelectedFolderId, toggleFolderSelection,
@@ -81,6 +84,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 onConfirm={confirmDeleteFolder}
                 folderName={folderToDelete?.name || ''}
                 isLoading={isDeletingFolder}
+            />
+            <BulkDeleteConfirmationModal
+                isOpen={showBulkDeleteModal}
+                onClose={() => setShowBulkDeleteModal(false)}
+                onConfirm={confirmBulkDelete}
+                isLoading={bulkDeleteType === 'invoices' ? isDeletingInvoice : isDeletingFolder}
+                count={bulkDeleteType === 'invoices' ? selectedInvoiceIds.size : selectedFolderIds.size}
+                type={bulkDeleteType}
             />
             <FolderModal
                 isOpen={showCreateFolderModal}

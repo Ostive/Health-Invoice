@@ -20,11 +20,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invoice data is required' }, { status: 400 });
         }
 
-        console.log('Generating PDF with @react-pdf/renderer...');
-        console.log('Invoice Data:', JSON.stringify(invoice, null, 2));
-        console.log('Profile Data:', JSON.stringify(profile, null, 2));
-        console.log('Invoice data:', JSON.stringify(invoice, null, 2));
-        console.log('Profile data:', JSON.stringify(profile, null, 2));
+
+
+
+
+
 
         // Get the appropriate template document
         const pdfDocument = getInvoicePDFTemplate(
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
             profile as Partial<UserProfile>
         );
 
-        console.log('PDF Document type:', typeof pdfDocument);
-        console.log('PDF Document:', pdfDocument);
+
+
 
         // Render to stream
         const stream = await renderToStream(pdfDocument);
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         }
         const pdfBuffer = Buffer.concat(chunks);
 
-        console.log(`PDF generated. Buffer size: ${pdfBuffer.length} bytes`);
+
 
         // Log Audit Action
         logAuditAction({

@@ -42,11 +42,6 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
   const [aiError, setAiError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[InvoiceEditor] Invoice state updated:', invoice);
-  }, [invoice]);
-
   const handleClientChange = (field: string, value: string) => {
     onChange({
       ...invoice,

@@ -69,6 +69,12 @@ interface DashboardContextType {
     showOnboarding: boolean;
     setShowOnboarding: (show: boolean) => void;
 
+    // Bulk Delete Modal Props
+    showBulkDeleteModal: boolean;
+    setShowBulkDeleteModal: (show: boolean) => void;
+    bulkDeleteType: 'invoices' | 'folders';
+    confirmBulkDelete: () => Promise<void>;
+
     // Actions
     refreshProfile: () => Promise<void>;
     handleNewInvoice: () => void;
@@ -139,6 +145,10 @@ export function DashboardProvider({
     const [folderToEdit, setFolderToEdit] = useState<Folder | null>(null);
     const [folderToDelete, setFolderToDelete] = useState<Folder | null>(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
+
+    // Bulk Delete Modal State
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleteType, setBulkDeleteType] = useState<'invoices' | 'folders'>('invoices');
 
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
@@ -268,7 +278,6 @@ export function DashboardProvider({
         setIsSaving(true);
         try {
             const savedInvoice = await InvoiceService.save(currentInvoice, user.id);
-            console.log('Client: Saved invoice:', savedInvoice);
             setInvoices(prev => {
                 const exists = prev.find(i => i.id === savedInvoice.id);
                 return exists
@@ -315,44 +324,52 @@ export function DashboardProvider({
 
     const handleBulkDeleteInvoices = async () => {
         if (selectedInvoiceIds.size === 0) return;
-        if (!confirm(`Voulez-vous vraiment supprimer ${selectedInvoiceIds.size} factures ?`)) return;
-
-        setIsDeletingInvoice(true);
-        try {
-            await InvoiceService.deleteMultiple(Array.from(selectedInvoiceIds));
-            const remaining = invoices.filter(i => !selectedInvoiceIds.has(i.id));
-            setInvoices(remaining);
-            if (currentInvoice && selectedInvoiceIds.has(currentInvoice.id)) {
-                setCurrentInvoice(remaining.length > 0 ? remaining[0] : createEmptyInvoice());
-            }
-            setSelectedInvoiceIds(new Set());
-            setToast({ message: `${selectedInvoiceIds.size} factures supprimées`, type: 'success' });
-        } catch (err: any) {
-            setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-            fetchInvoices();
-        } finally {
-            setIsDeletingInvoice(false);
-        }
+        setBulkDeleteType('invoices');
+        setShowBulkDeleteModal(true);
     };
 
     const handleBulkDeleteFolders = async () => {
         if (selectedFolderIds.size === 0) return;
-        if (!confirm(`Voulez-vous vraiment supprimer ${selectedFolderIds.size} dossiers ?\nLes factures à l'intérieur ne seront pas supprimées.`)) return;
+        setBulkDeleteType('folders');
+        setShowBulkDeleteModal(true);
+    };
 
-        setIsDeletingFolder(true);
-        try {
-            await InvoiceService.deleteMultipleFolders(Array.from(selectedFolderIds));
-            setFolders(prev => prev.filter(f => !selectedFolderIds.has(f.id)));
-            if (selectedFolderId && selectedFolderIds.has(selectedFolderId)) {
-                setSelectedFolderId(null);
+    const confirmBulkDelete = async () => {
+        if (bulkDeleteType === 'invoices') {
+            setIsDeletingInvoice(true);
+            try {
+                await InvoiceService.deleteMultiple(Array.from(selectedInvoiceIds));
+                const remaining = invoices.filter(i => !selectedInvoiceIds.has(i.id));
+                setInvoices(remaining);
+                if (currentInvoice && selectedInvoiceIds.has(currentInvoice.id)) {
+                    setCurrentInvoice(remaining.length > 0 ? remaining[0] : createEmptyInvoice());
+                }
+                setSelectedInvoiceIds(new Set());
+                setToast({ message: `${selectedInvoiceIds.size} factures supprimées`, type: 'success' });
+            } catch (err: any) {
+                setToast({ message: `Erreur: ${err.message}`, type: 'error' });
+                fetchInvoices();
+            } finally {
+                setIsDeletingInvoice(false);
+                setShowBulkDeleteModal(false);
             }
-            setSelectedFolderIds(new Set());
-            setToast({ message: `${selectedFolderIds.size} dossiers supprimés`, type: 'success' });
-        } catch (err: any) {
-            setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-            fetchFolders();
-        } finally {
-            setIsDeletingFolder(false);
+        } else {
+            setIsDeletingFolder(true);
+            try {
+                await InvoiceService.deleteMultipleFolders(Array.from(selectedFolderIds));
+                setFolders(prev => prev.filter(f => !selectedFolderIds.has(f.id)));
+                if (selectedFolderId && selectedFolderIds.has(selectedFolderId)) {
+                    setSelectedFolderId(null);
+                }
+                setSelectedFolderIds(new Set());
+                setToast({ message: `${selectedFolderIds.size} dossiers supprimés`, type: 'success' });
+            } catch (err: any) {
+                setToast({ message: `Erreur: ${err.message}`, type: 'error' });
+                fetchFolders();
+            } finally {
+                setIsDeletingFolder(false);
+                setShowBulkDeleteModal(false);
+            }
         }
     };
 
@@ -474,6 +491,8 @@ export function DashboardProvider({
             showUpgradeModal, setShowUpgradeModal, invoiceToDelete, setInvoiceToDelete,
             folderToDelete, setFolderToDelete, showCreateFolderModal, setShowCreateFolderModal,
             folderToEdit, setFolderToEdit, showOnboarding, setShowOnboarding,
+            // Bulk Delete Props
+            showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
             refreshProfile: fetchProfile,
             handleNewInvoice, handleInvoiceSelect, handleSaveInvoice, handleDeleteInvoice,
             handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,

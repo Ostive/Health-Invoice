@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        console.log('API: Profile update request body:', body);
+
         const { full_name, specialty, address, phone, siret, adeli } = body
 
         // Prepare payload with allowed fields only
@@ -27,14 +27,14 @@ export async function POST(request: Request) {
             adeli,
             updated_at: new Date().toISOString()
         }
-        console.log('API: Upserting profile payload:', payload);
+
 
         const { data, error } = await supabase
             .from('profiles')
             .upsert(payload)
             .select()
 
-        console.log('API: Upsert result:', { data, error });
+
 
         if (error) {
             throw error
