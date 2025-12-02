@@ -14,6 +14,7 @@ interface InvoicePreviewProps {
 // Height: 297mm ~ 1123px
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
+const MM_TO_PX = 3.78; // Conversion factor at 96 DPI
 const ITEMS_PER_PAGE = 12; // Safe limit to prevent overflow before we implement complex height measurement
 
 // Default profile data
@@ -92,7 +93,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, userPro
   };
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center w-full">
+    <div ref={containerRef} className="flex flex-col items-center w-full pt-4">
       {/* Scale Wrapper */}
       <div
         id="invoice-preview" // Target for HTML2PDF
@@ -100,6 +101,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, userPro
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
           width: '210mm', // Strictly force A4 width
+          marginBottom: `${pages.length * A4_HEIGHT_MM * MM_TO_PX * (scale - 1)}px` // Compensate for scale shrinkage
         }}
         className="transition-transform duration-200 ease-out"
       >
@@ -108,7 +110,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, userPro
             key={index}
             className={`
                         bg-white mx-auto relative overflow-hidden
-                        ${isExporting ? 'mb-0 shadow-none' : 'mb-8 shadow-xl'}
+                        ${isExporting ? 'mb-0 shadow-none' : 'mb-1 shadow-xl'}
                         print:shadow-none print:mb-0 ${index < pages.length - 1 ? 'print:break-after-page' : ''}
                     `}
             style={{
@@ -137,8 +139,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, userPro
         ))}
       </div>
 
-      {/* Spacer to compensate for Scale shrinking the visual height */}
-      <div style={{ height: `${(pages.length * A4_HEIGHT_MM * scale) - (pages.length * A4_HEIGHT_MM)}px` }} className="w-full print:hidden" />
+
     </div>
   );
 };

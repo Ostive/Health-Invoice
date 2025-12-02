@@ -131,7 +131,47 @@ export const InvoiceWorkspace = () => {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                 Nouveau
                             </Button>
-                            <Button onClick={handleSaveInvoice} isLoading={isSaving} size="sm" className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm"><span className="hidden sm:inline">Enregistrer</span><span className="sm:hidden">Sauvegarder</span></Button>
+                            {/* Desktop Save Button */}
+                            <Button onClick={handleSaveInvoice} isLoading={isSaving} size="sm" className="hidden sm:flex bg-primary-600 hover:bg-primary-700 text-white shadow-sm">
+                                Enregistrer
+                            </Button>
+
+                            {/* Mobile Save Button (Icon only, ghost style) */}
+                            <button
+                                onClick={handleSaveInvoice}
+                                className="sm:hidden p-2 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                                disabled={isSaving || isBusy}
+                            >
+                                {isSaving ? (
+                                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            {/* Mobile PDF Button */}
+                            <button
+                                onClick={handleDownloadPDF}
+                                className="sm:hidden p-2 text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                disabled={isExporting || isBusy}
+                            >
+                                {isExporting ? (
+                                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                )}
+                            </button>
+
+                            {/* Mobile Print Button */}
+                            <button
+                                onClick={handlePrint}
+                                className="sm:hidden p-2 text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                disabled={isBusy}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            </button>
                             <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
                             <Button variant="outline" size="sm" onClick={handleDownloadPDF} isLoading={isExporting} className="hidden md:flex items-center gap-2" disabled={isBusy}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>PDF</Button>
                             <Button variant="outline" size="sm" onClick={handlePrint} className="hidden md:flex" disabled={isBusy}>Imprimer</Button>
@@ -148,10 +188,6 @@ export const InvoiceWorkspace = () => {
                             <InvoiceEditor invoice={currentInvoice} onChange={setCurrentInvoice} folders={folders} />
                         </div>
                         <div className={`w-full md:w-[55%] h-full bg-slate-100 overflow-y-auto flex flex-col items-center p-0 md:p-8 ${activeTab === 'preview' ? 'block' : 'hidden md:flex'} print:block print:h-auto print:overflow-visible print:bg-white print:p-0`}>
-                            <div className="md:hidden flex justify-between items-center w-full px-4 py-2 bg-white sticky top-0 z-20 border-b border-slate-200 shadow-sm">
-                                <Button variant="outline" size="sm" className="flex-1 mr-2" onClick={handleDownloadPDF} isLoading={isExporting}>Télécharger PDF</Button>
-                                <Button variant="outline" size="sm" className="flex-1 ml-2" onClick={handlePrint}>Imprimer</Button>
-                            </div>
                             <div className="w-full max-w-none md:max-w-[210mm] mx-auto transition-all duration-300 h-full md:h-auto print:w-full print:max-w-none print:h-auto">
                                 <InvoicePreview invoice={currentInvoice} userProfile={profile} isExporting={isExporting} />
                             </div>

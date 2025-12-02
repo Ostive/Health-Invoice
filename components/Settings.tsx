@@ -117,19 +117,25 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">Paramètres</h2>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={onUpdate} title="Rafraîchir les données">
+        <div className="flex gap-2 md:gap-3">
+          <Button variant="outline" size="sm" onClick={onUpdate} title="Rafraîchir les données" className="px-2 md:px-3">
             <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </Button>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving}>Fermer</Button>
-          <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving} className="px-6 shadow-sm">Enregistrer</Button>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving} className="hidden md:flex">Fermer</Button>
+
+          {/* Desktop Save */}
+          <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving} className="hidden md:flex px-6 shadow-sm">Enregistrer</Button>
+
+          {/* Mobile Save Icon */}
+          <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving} className="md:hidden px-3 shadow-sm">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" /></svg>
+          </Button>
         </div>
       </div>
-
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden max-w-7xl mx-auto w-full">
         {/* Sidebar Navigation */}
-        <aside className="w-full md:w-64 bg-white md:bg-transparent border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col md:py-8 shrink-0 overflow-x-auto md:overflow-visible sticky top-0 z-20">
-          <nav className="flex md:flex-col gap-1 p-2 md:px-4 w-full">
+        <aside className="w-full md:w-64 bg-white md:bg-transparent border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col md:py-8 shrink-0 overflow-x-auto md:overflow-visible sticky top-0 z-20 [&::-webkit-scrollbar]:hidden">
+          <nav className="flex md:flex-col gap-2 p-2 md:px-4 w-full min-w-max">
             <div className="px-3 mb-2 hidden md:block">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Compte</span>
             </div>

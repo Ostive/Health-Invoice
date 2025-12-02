@@ -58,7 +58,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-500">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-slate-100">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
 
                 {/* Header with decorative background */}
                 <div className="relative bg-gradient-to-br from-primary-600 to-primary-800 px-8 py-10 text-white overflow-hidden shrink-0">
@@ -103,7 +103,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                     <div className="max-w-lg mx-auto">
                         {step === 1 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">Nom complet / Raison sociale <span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -121,7 +121,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                                     <p className="text-xs text-slate-400 mt-2 ml-1">Ce nom apparaîtra en en-tête de vos factures.</p>
                                 </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">Spécialité</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -141,7 +141,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
                         {step === 2 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">Adresse du cabinet</label>
                                     <div className="relative">
                                         <div className="absolute top-3.5 left-4 flex items-start pointer-events-none">
@@ -158,7 +158,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                                     </div>
                                 </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">Téléphone</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -178,7 +178,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
                         {step === 3 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">N° SIRET</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -195,7 +195,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                                     </div>
                                 </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 transition-colors group">
+                                <div className="group">
                                     <label className="block text-sm font-semibold text-slate-700 mb-2 group-hover:text-primary-600 transition-colors">N° ADELI / RPPS</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
