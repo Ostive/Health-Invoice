@@ -6,19 +6,25 @@ import { Button } from './ui/button';
 import { manageSubscription, subscribeToPro, reactivateSubscription } from '../services/stripeService';
 
 import { ToastType } from './ui/toast';
+import { Modal } from './ui/modal';
+import { useRouter } from 'next/navigation';
 
 interface SettingsProps {
   profile: UserProfile | null;
   onUpdate: () => void;
   onClose: () => void;
   onShowToast: (message: string, type: ToastType) => void;
-  activeSection: 'general' | 'subscription';
-  onSectionChange: (section: 'general' | 'subscription') => void;
+  activeSection: 'general' | 'subscription' | 'security';
+  onSectionChange: (section: 'general' | 'subscription' | 'security') => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, onShowToast, activeSection, onSectionChange }) => {
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (profile) {
@@ -73,6 +79,29 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
       onShowToast("Erreur lors de la sauvegarde : " + err.message, 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'supprimer') return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/delete-account', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du compte');
+      }
+
+      onShowToast('Compte supprimé avec succès. Au revoir !', 'success');
+      router.push('/');
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+      onShowToast("Erreur : " + err.message, 'error');
+      setIsDeleting(false);
     }
   };
 
@@ -132,6 +161,20 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
               </div>
               Abonnement
             </button>
+
+            <button
+              onClick={() => onSectionChange('security')}
+              disabled={isSaving}
+              className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${activeSection === 'security'
+                ? 'bg-white shadow-sm text-primary-700 ring-1 ring-slate-200'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+            >
+              <div className={`p-1 rounded ${activeSection === 'security' ? 'bg-primary-50 text-primary-600' : 'text-slate-400'}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </div>
+              Sécurité
+            </button>
           </nav>
         </aside>
 
@@ -172,62 +215,42 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
                           onChange={(e) => handleChange('specialty', e.target.value)}
                           placeholder="Infirmier Libéral"
                           disabled={isSaving}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm resize-none disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">Téléphone</label>
+                        <input
+                          type="tel"
+                          value={formData.phone || ''}
+                          onChange={(e) => handleChange('phone', e.target.value)}
+                          placeholder="01 23 45 67 89"
+                          disabled={isSaving}
                           className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Adresse du cabinet</label>
-                      <textarea
-                        value={formData.address || ''}
-                        onChange={(e) => handleChange('address', e.target.value)}
-                        placeholder="123 Avenue de la République, 75000 Paris"
-                        rows={3}
-                        disabled={isSaving}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm resize-none disabled:bg-slate-50 disabled:text-slate-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Téléphone</label>
-                      <input
-                        type="tel"
-                        value={formData.phone || ''}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                        placeholder="01 23 45 67 89"
-                        disabled={isSaving}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                {/* Legal Info Section */}
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <h4 className="font-semibold text-slate-800 text-sm">Mentions Légales</h4>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">N° ADELI / RPPS</label>
-                      <input
-                        type="text"
-                        value={formData.adeli || ''}
-                        onChange={(e) => handleChange('adeli', e.target.value)}
-                        placeholder="123456789"
-                        disabled={isSaving}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">SIRET</label>
-                      <input
-                        type="text"
-                        value={formData.siret || ''}
-                        onChange={(e) => handleChange('siret', e.target.value)}
-                        placeholder="123 456 789 00012"
-                        disabled={isSaving}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                      />
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">N° ADELI / RPPS</label>
+                        <input
+                          type="text"
+                          value={formData.adeli || ''}
+                          onChange={(e) => handleChange('adeli', e.target.value)}
+                          placeholder="123456789"
+                          disabled={isSaving}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">SIRET</label>
+                        <input
+                          type="text"
+                          value={formData.siret || ''}
+                          onChange={(e) => handleChange('siret', e.target.value)}
+                          placeholder="123 456 789 00012"
+                          disabled={isSaving}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -454,9 +477,88 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
               </div>
             )}
 
+            {activeSection === 'security' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center max-w-2xl mx-auto mb-8">
+                  <h3 className="text-3xl font-bold text-slate-900 mb-3">Sécurité & Confidentialité</h3>
+                  <p className="text-slate-500 text-lg">Gérez vos données et la sécurité de votre compte.</p>
+                </div>
+
+                {/* Danger Zone */}
+                <section className="bg-red-50 rounded-xl shadow-sm border border-red-100 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-red-100 bg-red-100/50">
+                    <h4 className="font-semibold text-red-800 text-sm flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      Zone de danger (RGPD)
+                    </h4>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <h5 className="font-medium text-red-900 mb-1">Supprimer mon compte</h5>
+                        <p className="text-sm text-red-700">
+                          Cette action est irréversible. Toutes vos données (factures, clients, paramètres) seront définitivement effacées conformément au RGPD.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-300 shrink-0"
+                        onClick={() => {
+                          setDeleteConfirmation('');
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        Supprimer mon compte
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+
           </div>
         </main>
       </div>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Supprimer votre compte ?"
+        className="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 p-4 rounded-lg border border-red-100 flex gap-3">
+            <svg className="w-6 h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <p className="text-sm text-red-800">
+              Attention : cette action est <strong>définitive</strong>. Vous perdrez l'accès à toutes vos factures et données clients. Il n'y a pas de retour en arrière possible.
+            </p>
+          </div>
+
+          <p className="text-slate-600 text-sm">
+            Pour confirmer, veuillez taper <strong>supprimer</strong> ci-dessous.
+          </p>
+
+          <input
+            type="text"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+            placeholder="supprimer"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+          />
+
+          <div className="flex gap-3 justify-end mt-6">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Annuler</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white border-none"
+              disabled={deleteConfirmation !== 'supprimer' || isDeleting}
+              isLoading={isDeleting}
+              onClick={handleDeleteAccount}
+            >
+              Supprimer définitivement
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

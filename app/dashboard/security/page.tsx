@@ -4,7 +4,7 @@ import { useDashboard } from '@/components/dashboard/DashboardContext'
 import { Settings } from '@/components/Settings'
 import { useRouter } from 'next/navigation'
 
-export default function ParameterPage() {
+export default function SecurityPage() {
     const { profile, refreshProfile, setToast } = useDashboard()
     const router = useRouter()
 
@@ -14,10 +14,10 @@ export default function ParameterPage() {
             onUpdate={refreshProfile}
             onClose={() => router.push('/dashboard')}
             onShowToast={(message, type) => setToast({ message, type })}
-            activeSection="general"
+            activeSection="security"
             onSectionChange={(section) => {
+                if (section === 'general') router.push('/dashboard/parameter')
                 if (section === 'subscription') router.push('/dashboard/subscription')
-                if (section === 'security') router.push('/dashboard/security')
             }}
         />
     )

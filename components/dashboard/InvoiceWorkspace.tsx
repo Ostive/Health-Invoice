@@ -89,7 +89,7 @@ export const InvoiceWorkspace = () => {
 
     return (
         <>
-            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0">
+            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-10 sticky top-0 print:hidden">
                 <div className="flex items-center gap-3">
                     {/* Mobile toggle is in Layout, but we need to reserve space or handle it? 
                         Layout handles the toggle button. Here we just show the title. 
@@ -144,15 +144,15 @@ export const InvoiceWorkspace = () => {
             <div className="flex-1 overflow-hidden flex relative pb-16 md:pb-0">
                 {currentInvoice ? (
                     <>
-                        <div className={`w-full md:w-[45%] h-full overflow-y-auto bg-white md:border-r border-slate-200 ${activeTab === 'editor' ? 'block' : 'hidden md:block'}`}>
+                        <div className={`w-full md:w-[45%] h-full overflow-y-auto bg-white md:border-r border-slate-200 ${activeTab === 'editor' ? 'block' : 'hidden md:block'} print:hidden`}>
                             <InvoiceEditor invoice={currentInvoice} onChange={setCurrentInvoice} folders={folders} />
                         </div>
-                        <div className={`w-full md:w-[55%] h-full bg-slate-100 overflow-y-auto flex flex-col items-center p-0 md:p-8 ${activeTab === 'preview' ? 'block' : 'hidden md:flex'}`}>
+                        <div className={`w-full md:w-[55%] h-full bg-slate-100 overflow-y-auto flex flex-col items-center p-0 md:p-8 ${activeTab === 'preview' ? 'block' : 'hidden md:flex'} print:block print:h-auto print:overflow-visible print:bg-white print:p-0`}>
                             <div className="md:hidden flex justify-between items-center w-full px-4 py-2 bg-white sticky top-0 z-20 border-b border-slate-200 shadow-sm">
                                 <Button variant="outline" size="sm" className="flex-1 mr-2" onClick={handleDownloadPDF} isLoading={isExporting}>Télécharger PDF</Button>
                                 <Button variant="outline" size="sm" className="flex-1 ml-2" onClick={handlePrint}>Imprimer</Button>
                             </div>
-                            <div className="w-full max-w-none md:max-w-[210mm] mx-auto transition-all duration-300 h-full md:h-auto">
+                            <div className="w-full max-w-none md:max-w-[210mm] mx-auto transition-all duration-300 h-full md:h-auto print:w-full print:max-w-none print:h-auto">
                                 <InvoicePreview invoice={currentInvoice} userProfile={profile} isExporting={isExporting} />
                             </div>
                         </div>
@@ -168,7 +168,7 @@ export const InvoiceWorkspace = () => {
             </div>
 
             {/* Mobile Bottom Navigation Bar */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] print:hidden">
                 <button
                     onClick={() => setActiveTab('editor')}
                     className={`flex flex-col items-center justify-center w-full h-full ${activeTab === 'editor' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}

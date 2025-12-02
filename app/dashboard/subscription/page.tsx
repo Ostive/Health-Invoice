@@ -17,6 +17,7 @@ export default function SubscriptionPage() {
             activeSection="subscription"
             onSectionChange={(section) => {
                 if (section === 'general') router.push('/dashboard/parameter')
+                if (section === 'security') router.push('/dashboard/security')
             }}
         />
     )

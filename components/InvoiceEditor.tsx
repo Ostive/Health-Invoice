@@ -107,11 +107,11 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
       }
 
       if (data.notes) {
-        updatedInvoice.notes = (updatedInvoice.notes ? updatedInvoice.notes + '\n' : '') + data.notes;
+        updatedInvoice.notes = data.notes;
       }
 
       onChange(updatedInvoice);
-      setAiPrompt('');
+      setAiPrompt(''); // Clear prompt after generation
 
     } catch (err: any) {
       setAiError(err.message);
@@ -120,41 +120,69 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
     }
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+      // Stop recording
+      if (recognitionRef.current && recognitionRef.current.state !== 'inactive') {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      }
     } else {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setAiError("Votre navigateur ne supporte pas la reconnaissance vocale.");
+      // Start recording
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setAiError("Votre navigateur ne supporte pas l'enregistrement audio.");
         return;
       }
 
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'fr-FR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        recognitionRef.current = mediaRecorder;
+        const audioChunks: Blob[] = [];
 
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setAiPrompt(prev => (prev ? prev + ' ' : '') + transcript);
-        setIsListening(false);
-      };
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
 
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsListening(false);
-        setAiError("Erreur de reconnaissance vocale.");
-      };
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
 
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+          // Send to API
+          const formData = new FormData();
+          formData.append('audio', audioBlob);
 
-      recognitionRef.current = recognition;
-      recognition.start();
-      setIsListening(true);
+          try {
+            // Show loading state for transcription if needed, or just append text
+            const response = await fetch('/api/transcribe', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              throw new Error('Erreur de transcription');
+            }
+
+            const data = await response.json();
+            if (data.text) {
+              setAiPrompt(prev => (prev ? prev + ' ' : '') + data.text);
+            }
+          } catch (err) {
+            console.error("Transcription error:", err);
+            setAiError("Erreur lors de la transcription audio.");
+          } finally {
+            // Stop all tracks to release microphone
+            stream.getTracks().forEach(track => track.stop());
+          }
+        };
+
+        mediaRecorder.start();
+        setIsListening(true);
+        setAiError(null);
+
+      } catch (err) {
+        console.error("Microphone access error:", err);
+        setAiError("Accès au microphone refusé.");
+      }
     }
   };
 
@@ -237,10 +265,10 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                 </div>
               </div>
             </div>
-          </div >
+          </div>
 
           {/* Invoice Details Section */}
-          < div className="bg-white md:bg-transparent rounded-xl p-1 md:p-0 relative z-20" >
+          <div className="bg-white md:bg-transparent rounded-xl p-1 md:p-0 relative z-20">
             <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               Détails Facture
@@ -289,8 +317,8 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                 />
               </div>
             </div>
-          </div >
-        </div >
+          </div>
+        </div>
 
         <hr className="border-slate-100" />
 
