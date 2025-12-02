@@ -80,7 +80,7 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
       const response = await fetch('/api/generate-invoice-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
+        body: JSON.stringify({ text: aiPrompt }),
       });
 
       if (!response.ok) {
