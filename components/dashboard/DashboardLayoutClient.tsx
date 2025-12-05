@@ -156,7 +156,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                     <h1 className="text-lg font-semibold text-slate-800 truncate">Facturier.ai</h1>
                 </div>
 
-                {children}
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    {children}
+                </div>
             </main>
 
             <OnboardingModal

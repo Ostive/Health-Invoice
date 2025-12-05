@@ -1,9 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { SignUpSchema } from '@/lib/schemas'
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json()
+    const body = await request.json()
+
+    // Zod Validation
+    const validationResult = SignUpSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      const missing = validationResult.error.issues.map(issue => issue.message);
+      return NextResponse.json(
+        { error: `Le mot de passe doit contenir : ${missing.join(', ')}.` },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = validationResult.data;
 
     const supabase = await createClient()
     const { data, error } = await supabase.auth.signUp({

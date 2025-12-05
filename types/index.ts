@@ -39,6 +39,7 @@ export interface Invoice {
     status: InvoiceStatus;
     template: InvoiceTemplateId;
     folderId?: string | null; // Link to a folder
+    patientId?: string | null; // Link to a patient
 }
 
 // User Profile for Subscription and Invoice Customization

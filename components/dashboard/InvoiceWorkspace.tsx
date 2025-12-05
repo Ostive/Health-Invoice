@@ -13,7 +13,7 @@ export const InvoiceWorkspace = () => {
         activeTab, setActiveTab,
         isBusy, isSaving, isDeletingInvoice, isExporting, setIsExporting,
         handleNewInvoice, handleSaveInvoice, promptDeleteInvoice,
-        setToast, folders, invoiceToDelete
+        setToast, folders, invoiceToDelete, patients
     } = useDashboard();
 
     const handlePrint = () => {
@@ -185,7 +185,7 @@ export const InvoiceWorkspace = () => {
                 {currentInvoice ? (
                     <>
                         <div className={`w-full md:w-[45%] h-full overflow-y-auto bg-white md:border-r border-slate-200 ${activeTab === 'editor' ? 'block' : 'hidden md:block'} print:hidden`}>
-                            <InvoiceEditor invoice={currentInvoice} onChange={setCurrentInvoice} folders={folders} />
+                            <InvoiceEditor invoice={currentInvoice} onChange={setCurrentInvoice} folders={folders} patients={patients} />
                         </div>
                         <div className={`w-full md:w-[55%] h-full bg-slate-100 overflow-y-auto flex flex-col items-center p-0 md:p-8 ${activeTab === 'preview' ? 'block' : 'hidden md:flex'} print:block print:h-auto print:overflow-visible print:bg-white print:p-0`}>
                             <div className="w-full max-w-none md:max-w-[210mm] mx-auto transition-all duration-300 h-full md:h-auto print:w-full print:max-w-none print:h-auto">

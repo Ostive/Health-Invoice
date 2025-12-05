@@ -20,7 +20,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
         handleEditFolder, handleDeleteFolderClick,
         promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
-        setShowUpgradeModal, handleOpenSettings, onLogout
+        setShowUpgradeModal, handleOpenSettings, onLogout,
+        currentView, setCurrentView
     } = useDashboard();
 
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -69,95 +70,124 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 </div>
             </div>
 
-            <div className="p-4 border-b border-slate-100 shrink-0 hidden lg:block">
-                <Button onClick={handleNewInvoice} className="w-full justify-center shadow-sm group" disabled={isBusy}>
-                    <svg className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                    Nouvelle Facture
-                </Button>
-                {!profile?.is_pro && (
-                    <div className="mt-3 text-center group cursor-help">
-                        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1 overflow-hidden">
-                            <div className="bg-primary-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((invoices.length / PLAN_LIMITS.free.maxInvoices) * 100, 100)}%` }}></div>
-                        </div>
-                        <p className="text-[10px] text-slate-400 group-hover:text-primary-600 transition-colors">
-                            {invoices.length} / {PLAN_LIMITS.free.maxInvoices} factures gratuites
-                        </p>
-                    </div>
-                )}
+
+            {/* Navigation Tabs */}
+            <div className="flex p-2 gap-1 border-b border-slate-100 bg-slate-50/50">
+                <button
+                    onClick={() => { setCurrentView('invoices'); onClose?.(); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${currentView === 'invoices' ? 'bg-white text-primary-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Factures
+                </button>
+                <button
+                    onClick={() => { setCurrentView('patients'); onClose?.(); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${currentView === 'patients' ? 'bg-white text-primary-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Patients
+                </button>
             </div>
 
-            {/* Folders Section */}
-            <div className="px-3 py-2 border-b border-slate-100 shrink-0">
-                <div className="flex items-center justify-between px-3 mb-1">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dossiers</span>
-                    <div className="flex items-center gap-1">
-                        {selectedFolderIds.size > 0 && (
-                            <button onClick={handleBulkDeleteFolders} className="text-red-400 hover:text-red-600 mr-2" title="Supprimer la sélection">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-                        )}
-                        <button onClick={handleCreateFolderClick} className="text-slate-400 hover:text-primary-600" title="Créer un dossier" disabled={isBusy}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                        </button>
-                    </div>
-                </div>
-                <div className="px-3 mb-2">
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                            <svg className="h-3 w-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            {
+                currentView === 'invoices' ? (
+                    <>
+                        <div className="p-4 border-b border-slate-100 shrink-0">
+                            <Button onClick={() => { handleNewInvoice(); onClose?.(); }} className="w-full justify-center shadow-sm group" disabled={isBusy}>
+                                <svg className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                Nouvelle Facture
+                            </Button>
+                            {!profile?.is_pro && (
+                                <div className="mt-3 text-center group cursor-help">
+                                    <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1 overflow-hidden">
+                                        <div className="bg-primary-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((invoices.length / PLAN_LIMITS.free.maxInvoices) * 100, 100)}%` }}></div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 group-hover:text-primary-600 transition-colors">
+                                        {invoices.length} / {PLAN_LIMITS.free.maxInvoices} factures gratuites
+                                    </p>
+                                </div>
+                            )}
                         </div>
-                        <input
-                            type="text"
-                            value={folderSearchQuery}
-                            onChange={(e) => setFolderSearchQuery(e.target.value)}
-                            placeholder="Chercher un dossier..."
-                            className="w-full pl-7 pr-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
-                            disabled={isBusy}
-                        />
-                    </div>
-                </div>
-                <div className="space-y-0.5 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 pr-1">
-                    <button
-                        onClick={() => !isBusy && setSelectedFolderId(null)}
-                        disabled={isBusy}
-                        className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors ${!selectedFolderId ? 'bg-primary-50 text-primary-700 font-medium' : 'text-slate-600 hover:bg-slate-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                        Tous les documents
-                    </button>
-                    {folders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase())).map(f => (
-                        <div
-                            key={f.id}
-                            className={`group relative flex items-center w-full rounded-md transition-colors ${selectedFolderId === f.id ? 'bg-primary-50 text-primary-700 font-medium' : selectedFolderIds.has(f.id) ? 'bg-primary-50/50' : 'text-slate-600 hover:bg-slate-50'}`}
-                        >
-                            <div className="pl-2 pr-1 flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedFolderIds.has(f.id)}
-                                    onChange={(e) => { e.stopPropagation(); toggleFolderSelection(f.id); }}
-                                    className={`rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 transition-opacity ${selectedFolderIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                />
+
+                        {/* Folders Section */}
+                        <div className="px-3 py-2 border-b border-slate-100 shrink-0">
+                            <div className="flex items-center justify-between px-3 mb-1">
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dossiers</span>
+                                <div className="flex items-center gap-1">
+                                    {selectedFolderIds.size > 0 && (
+                                        <button onClick={handleBulkDeleteFolders} className="text-red-400 hover:text-red-600 mr-2" title="Supprimer la sélection">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    )}
+                                    <button onClick={handleCreateFolderClick} className="text-slate-400 hover:text-primary-600" title="Créer un dossier" disabled={isBusy}>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                onClick={() => !isBusy && setSelectedFolderId(f.id)}
-                                disabled={isBusy}
-                                className="flex-1 flex items-center gap-2 px-2 py-1.5 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <svg className={`w-4 h-4 shrink-0 ${getFolderColorClass(f.color)}`} fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                                <span className="truncate">{f.name}</span>
-                            </button>
-                            <div className="flex items-center gap-1 pr-2">
-                                <button onClick={(e) => !isBusy && handleEditFolder(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-primary-600 rounded disabled:opacity-50 transition-colors" title="Modifier">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <div className="px-3 mb-2">
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                        <svg className="h-3 w-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={folderSearchQuery}
+                                        onChange={(e) => setFolderSearchQuery(e.target.value)}
+                                        placeholder="Chercher un dossier..."
+                                        className="w-full pl-7 pr-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                                        disabled={isBusy}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-0.5 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 pr-1">
+                                <button
+                                    onClick={() => !isBusy && setSelectedFolderId(null)}
+                                    disabled={isBusy}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors ${!selectedFolderId ? 'bg-primary-50 text-primary-700 font-medium' : 'text-slate-600 hover:bg-slate-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                    <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                                    Tous les documents
                                 </button>
-                                <button onClick={(e) => !isBusy && handleDeleteFolderClick(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-red-600 rounded disabled:opacity-50 transition-colors" title="Supprimer">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
+                                {folders.filter(f => f.name.toLowerCase().includes(folderSearchQuery.toLowerCase())).map(f => (
+                                    <div
+                                        key={f.id}
+                                        className={`group relative flex items-center w-full rounded-md transition-colors ${selectedFolderId === f.id ? 'bg-primary-50 text-primary-700 font-medium' : selectedFolderIds.has(f.id) ? 'bg-primary-50/50' : 'text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        <div className="pl-2 pr-1 flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFolderIds.has(f.id)}
+                                                onChange={(e) => { e.stopPropagation(); toggleFolderSelection(f.id); }}
+                                                className={`rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5 transition-opacity ${selectedFolderIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => !isBusy && setSelectedFolderId(f.id)}
+                                            disabled={isBusy}
+                                            className="flex-1 flex items-center gap-2 px-2 py-1.5 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <svg className={`w-4 h-4 shrink-0 ${getFolderColorClass(f.color)}`} fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                                            <span className="truncate">{f.name}</span>
+                                        </button>
+                                        <div className="flex items-center gap-1 pr-2">
+                                            <button onClick={(e) => !isBusy && handleEditFolder(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-primary-600 rounded disabled:opacity-50 transition-colors" title="Modifier">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            </button>
+                                            <button onClick={(e) => !isBusy && handleDeleteFolderClick(f, e)} disabled={isBusy} className="p-1 text-slate-300 hover:text-red-600 rounded disabled:opacity-50 transition-colors" title="Supprimer">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    ))}
-                </div>
-            </div>
+                    </>
+                ) : (
+                    <div className="p-4 text-center text-slate-500 text-sm">
+                        <p>Gestion des patients</p>
+                    </div>
+                )
+            }
 
             <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-200">
                 <div className="px-3 mb-2 mt-2 flex gap-2">
@@ -281,7 +311,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                         return (
                             <div
                                 key={inv.id}
-                                onClick={() => handleInvoiceSelect(inv)}
+                                onClick={() => { handleInvoiceSelect(inv); onClose?.(); }}
                                 className={`group relative flex flex-col p-3 rounded-lg cursor-pointer border transition-all duration-200 ${currentInvoice?.id === inv.id
                                     ? 'bg-primary-50 border-primary-200 shadow-sm z-10'
                                     : selectedInvoiceIds.has(inv.id)
@@ -362,6 +392,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

@@ -29,6 +29,8 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -56,6 +58,12 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
     if (errorMsg.includes("Rate limit")) {
       return "Trop de tentatives. Veuillez patienter quelques instants."
     }
+    if (errorMsg.includes("Les mots de passe ne correspondent pas")) {
+      return "Les mots de passe ne correspondent pas."
+    }
+    if (errorMsg.includes("Le mot de passe doit contenir")) {
+      return errorMsg;
+    }
     return "Une petite erreur technique est survenue. Veuillez réessayer."
   }
 
@@ -67,6 +75,26 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
 
     try {
       if (mode === 'register') {
+        if (password !== confirmPassword) {
+          throw new Error("Les mots de passe ne correspondent pas.")
+        }
+
+        // Password complexity check
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        const hasMinLength = password.length >= 8;
+
+        const missing = [];
+        if (!hasMinLength) missing.push("8 caractères");
+        if (!hasUpperCase) missing.push("une majuscule");
+        if (!hasLowerCase) missing.push("une minuscule");
+        if (!hasSpecialChar) missing.push("un caractère spécial");
+
+        if (missing.length > 0) {
+          throw new Error(`Le mot de passe doit contenir : ${missing.join(', ')}.`);
+        }
+
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -103,10 +131,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
         const data = await response.json()
 
         if (!response.ok) {
-          console.error('Login error:', {
-            message: data.error,
-            status: response.status
-          })
+          // Expected error (e.g., invalid credentials), handled by UI
           throw new Error(data.error || 'Login failed')
         }
 
@@ -153,7 +178,7 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
         placeholder: '••••••••',
         value: password,
         setValue: setPassword,
-        minLength: 6,
+        minLength: 8,
         iconPath: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
         autoComplete: mode === 'register' ? 'new-password' : 'current-password',
         extraLabelContent: mode === 'login' ? (
@@ -165,6 +190,20 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
             Mot de passe oublié ?
           </button>
         ) : undefined
+      })
+    }
+
+    if (mode === 'register') {
+      fields.push({
+        id: 'confirmPassword',
+        label: 'Confirmer le mot de passe',
+        type: 'password',
+        placeholder: '••••••••',
+        value: confirmPassword,
+        setValue: setConfirmPassword,
+        minLength: 8,
+        iconPath: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+        autoComplete: 'new-password'
       })
     }
 
@@ -230,17 +269,47 @@ export const Auth: React.FC<AuthProps> = ({ initialMode, onClose }) => {
                   </svg>
                 </div>
                 <input
-                  type={field.type}
+                  type={field.id === 'password' && showPassword ? 'text' : field.type}
                   required
                   minLength={field.minLength}
                   value={field.value}
                   onChange={(e) => field.setValue(e.target.value)}
-                  className="w-full pl-10 border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-10 pr-10 border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder={field.placeholder}
                   autoComplete={field.autoComplete}
                   disabled={isLoading}
                 />
+                {field.id === 'password' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                )}
               </div>
+              {mode === 'register' && field.id === 'password' && (
+                <div className="mt-3 grid grid-cols-2 gap-2 animate-in slide-in-from-top-1 duration-200">
+                  {[
+                    { label: '8 caractères', valid: field.value.length >= 8 },
+                    { label: 'Majuscule', valid: /[A-Z]/.test(field.value) },
+                    { label: 'Minuscule', valid: /[a-z]/.test(field.value) },
+                    { label: 'Caractère spécial', valid: /[!@#$%^&*(),.?":{}|<>]/.test(field.value) },
+                  ].map((req, i) => (
+                    <div key={i} className={`text-xs flex items-center gap-1.5 transition-colors ${req.valid ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition-colors ${req.valid ? 'bg-green-100 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+                        {req.valid && <svg className="w-2.5 h-2.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                      </div>
+                      {req.label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 

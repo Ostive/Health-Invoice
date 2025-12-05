@@ -1,12 +1,12 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 
 export default function DebugPage() {
     const [profile, setProfile] = useState<any>(null)
     const [error, setError] = useState<any>(null)
-    const supabase = createClientComponentClient()
+    const supabase = createClient()
 
     useEffect(() => {
         async function load() {

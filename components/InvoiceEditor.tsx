@@ -4,11 +4,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Invoice, LineItem, InvoiceStatus, InvoiceTemplateId, Folder } from '../types/index';
 import { Button } from './ui/button';
 import { Select } from './ui/select';
+import { PatientInput } from '../lib/schemas';
 
 interface InvoiceEditorProps {
   invoice: Invoice;
   onChange: (invoice: Invoice) => void;
   folders?: Folder[];
+  patients?: PatientInput[];
 }
 
 const templates: { id: InvoiceTemplateId; name: string; description: string }[] = [
@@ -35,7 +37,7 @@ const getFolderTextColorClass = (color?: string) => {
   return `text-${color}-500`;
 };
 
-export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange, folders = [] }) => {
+export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange, folders = [], patients = [] }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -47,6 +49,22 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
       ...invoice,
       client: { ...invoice.client, [field]: value }
     });
+  };
+
+  const handlePatientSelect = (patientId: string) => {
+    if (patientId === 'none') return;
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+      onChange({
+        ...invoice,
+        client: {
+          name: patient.name,
+          address: patient.address || '',
+          email: patient.email || '',
+          ssn: patient.ssn || ''
+        }
+      });
+    }
   };
 
   const handleItemChange = (id: string, field: keyof LineItem, value: string | number) => {
@@ -208,6 +226,15 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
     }))
   ];
 
+  const patientOptions = [
+    { value: 'none', label: 'Sélectionner un patient...', icon: <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
+    ...patients.map(p => ({
+      value: p.id || '',
+      label: p.name,
+      icon: <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+    }))
+  ];
+
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6 relative h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto flex flex-col gap-6 md:gap-8">
@@ -217,14 +244,27 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
 
           {/* Client Information Section */}
           <div className="bg-white md:bg-transparent rounded-xl p-1 md:p-0 relative z-30">
-            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
-              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              Informations Client
-            </h3>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Informations Client
+              </h3>
+              {patients.length > 0 && (
+                <div className="w-48">
+                  <Select
+                    value="none"
+                    onChange={handlePatientSelect}
+                    options={patientOptions}
+                    placeholder="Importer..."
+                  />
+                </div>
+              )}
+            </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Nom complet</label>
+                <label htmlFor="client-name" className="block text-xs font-medium text-slate-600 mb-1.5">Nom complet</label>
                 <input
+                  id="client-name"
                   type="text"
                   value={invoice.client.name}
                   onChange={(e) => handleClientChange('name', e.target.value)}
@@ -233,8 +273,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Adresse</label>
+                <label htmlFor="client-address" className="block text-xs font-medium text-slate-600 mb-1.5">Adresse</label>
                 <textarea
+                  id="client-address"
                   value={invoice.client.address}
                   onChange={(e) => handleClientChange('address', e.target.value)}
                   rows={3}
@@ -244,8 +285,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
+                  <label htmlFor="client-email" className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
                   <input
+                    id="client-email"
                     type="email"
                     value={invoice.client.email}
                     onChange={(e) => handleClientChange('email', e.target.value)}
@@ -254,8 +296,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">N° Sécu (SSN)</label>
+                  <label htmlFor="client-ssn" className="block text-xs font-medium text-slate-600 mb-1.5">N° Sécu (SSN)</label>
                   <input
+                    id="client-ssn"
                     type="text"
                     value={invoice.client.ssn || ''}
                     onChange={(e) => handleClientChange('ssn', e.target.value)}
@@ -275,12 +318,12 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">N° Facture</label>
-                <input type="text" value={invoice.number} onChange={(e) => onChange({ ...invoice, number: e.target.value })} className="w-full border border-slate-300 rounded-lg text-base md:text-sm px-3 py-3 md:py-2.5 shadow-sm" placeholder="Généré automatiquement" />
+                <label htmlFor="invoice-number" className="block text-xs font-medium text-slate-600 mb-1.5">N° Facture</label>
+                <input id="invoice-number" type="text" value={invoice.number} onChange={(e) => onChange({ ...invoice, number: e.target.value })} className="w-full border border-slate-300 rounded-lg text-base md:text-sm px-3 py-3 md:py-2.5 shadow-sm bg-slate-50 text-slate-500" placeholder="Généré automatiquement" disabled={!invoice.id} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Date</label>
-                <input type="date" value={invoice.date} onChange={(e) => onChange({ ...invoice, date: e.target.value })} className="w-full border border-slate-300 rounded-lg text-base md:text-sm px-3 py-3 md:py-2.5 shadow-sm" />
+                <label htmlFor="invoice-date" className="block text-xs font-medium text-slate-600 mb-1.5">Date</label>
+                <input id="invoice-date" type="date" value={invoice.date} onChange={(e) => onChange({ ...invoice, date: e.target.value })} className="w-full border border-slate-300 rounded-lg text-base md:text-sm px-3 py-3 md:py-2.5 shadow-sm" />
               </div>
               <div className="relative z-30">
                 <Select
@@ -307,8 +350,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                 />
               </div>
               <div className="sm:col-span-2 z-0">
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Notes</label>
+                <label htmlFor="invoice-notes" className="block text-xs font-medium text-slate-600 mb-1.5">Notes</label>
                 <textarea
+                  id="invoice-notes"
                   value={invoice.notes || ''}
                   onChange={(e) => onChange({ ...invoice, notes: e.target.value })}
                   className="w-full border border-slate-300 rounded-lg text-base md:text-sm px-3 py-3 md:py-2.5 shadow-sm"
@@ -385,8 +429,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
               {invoice.items.map((item) => (
                 <div key={item.id} className="flex flex-col sm:flex-row gap-3 items-start bg-slate-50 p-3 rounded-xl border border-slate-200 group hover:border-primary-200 transition-colors shadow-sm">
                   <div className="flex-1 w-full">
-                    <label className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Description</label>
+                    <label htmlFor={`item-desc-${item.id}`} className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Description</label>
                     <input
+                      id={`item-desc-${item.id}`}
                       type="text"
                       value={item.description}
                       onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
@@ -396,8 +441,9 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
                     <div className="w-24 sm:w-20 shrink-0">
-                      <label className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Qté</label>
+                      <label htmlFor={`item-qty-${item.id}`} className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Qté</label>
                       <input
+                        id={`item-qty-${item.id}`}
                         type="number"
                         value={item.quantity}
                         onChange={(e) => handleItemChange(item.id, 'quantity', parseFloat(e.target.value))}
@@ -406,9 +452,10 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({ invoice, onChange,
                       />
                     </div>
                     <div className="flex-1 sm:w-24">
-                      <label className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Prix</label>
+                      <label htmlFor={`item-price-${item.id}`} className="block sm:hidden text-[10px] uppercase text-slate-400 font-bold mb-1">Prix</label>
                       <div className="relative">
                         <input
+                          id={`item-price-${item.id}`}
                           type="number"
                           value={item.unitPrice}
                           onChange={(e) => handleItemChange(item.id, 'unitPrice', parseFloat(e.target.value))}

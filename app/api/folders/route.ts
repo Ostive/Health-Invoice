@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+import { FolderSchema } from '@/lib/schemas'
+
 export async function GET() {
     const supabase = await createClient()
 
@@ -45,11 +47,16 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { name, color } = body
 
-        if (!name) {
-            return NextResponse.json({ error: 'Folder name is required' }, { status: 400 })
+        // Zod Validation
+        const validationResult = FolderSchema.safeParse(body);
+
+        if (!validationResult.success) {
+            const errors = validationResult.error.issues.map(issue => issue.message);
+            return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 });
         }
+
+        const { name, color } = validationResult.data;
 
         // Check for existing folder with same name
         const { data: existing } = await supabase

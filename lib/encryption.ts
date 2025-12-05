@@ -1,48 +1,80 @@
+import CryptoJS from 'crypto-js';
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || ''; // Must be 32 chars
-const IV_LENGTH = 16; // For AES, this is always 16
+const SECRET_KEY = process.env.ENCRYPTION_KEY;
 
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
-    console.warn('⚠️ ENCRYPTION_KEY is missing or invalid (must be 32 characters). SSN encryption will fail or be insecure.');
+if (!SECRET_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is not set. This is required for securing sensitive data.');
 }
 
-export function encrypt(text: string): string {
-    if (!text) return text;
+// Derive a 32-byte key from the secret
+const key = crypto.createHash('sha256').update(String(SECRET_KEY)).digest();
+const algorithm = 'aes-256-gcm';
 
-    if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
-        throw new Error('CRITICAL SECURITY ERROR: ENCRYPTION_KEY is missing or invalid. Cannot encrypt sensitive data.');
-    }
-
+/**
+ * Encrypts a sensitive string using AES-256-GCM (Node.js crypto).
+ * @param text The plain text to encrypt
+ * @returns The encrypted string in format "iv:authTag:ciphertext"
+ */
+export const encrypt = (text: string): string => {
+    if (!text) return '';
     try {
-        const iv = crypto.randomBytes(IV_LENGTH);
-        const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-        let encrypted = cipher.update(text);
-        encrypted = Buffer.concat([encrypted, cipher.final()]);
-        return iv.toString('hex') + ':' + encrypted.toString('hex');
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv(algorithm, key, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const tag = cipher.getAuthTag().toString('hex');
+        return `${iv.toString('hex')}:${tag}:${encrypted}`;
     } catch (error) {
         console.error('Encryption failed:', error);
-        throw new Error('Encryption failed');
+        return '';
     }
-}
+};
 
-export function decrypt(text: string): string {
-    if (!text) return text;
-    if (!ENCRYPTION_KEY) return text;
+/**
+ * Decrypts an encrypted string. Supports both new (Node.js crypto) and legacy (CryptoJS) formats.
+ * @param cipherText The encrypted string
+ * @returns The decrypted plain text
+ */
+export const decrypt = (cipherText: string): string => {
+    if (!cipherText) return '';
 
-    // Check if text is in encrypted format (iv:content)
-    const textParts = text.split(':');
-    if (textParts.length !== 2) return text; // Not encrypted or legacy data
+    // Legacy support for CryptoJS (starts with "Salted__" in Base64 -> "U2FsdGVkX1")
+    if (cipherText.startsWith('U2FsdGVkX1')) {
+        try {
+            const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY!);
+            const originalText = bytes.toString(CryptoJS.enc.Utf8);
+            if (originalText) return originalText;
+        } catch (e) {
+            // Fall through to try new format or return empty
+        }
+    }
 
+    // Try Node.js crypto decryption
     try {
-        const iv = Buffer.from(textParts[0], 'hex');
-        const encryptedText = Buffer.from(textParts[1], 'hex');
-        const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-        let decrypted = decipher.update(encryptedText);
-        decrypted = Buffer.concat([decrypted, decipher.final()]);
-        return decrypted.toString();
+        const parts = cipherText.split(':');
+        if (parts.length !== 3) {
+            // If it's not our format and failed legacy check, it might be invalid or legacy that failed check
+            return '';
+        }
+
+        const [ivHex, tagHex, encryptedHex] = parts;
+        const iv = Buffer.from(ivHex, 'hex');
+        const tag = Buffer.from(tagHex, 'hex');
+
+        const decipher = crypto.createDecipheriv(algorithm, key, iv);
+        decipher.setAuthTag(tag);
+
+        let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
     } catch (error) {
         console.error('Decryption failed:', error);
-        return text; // Return original text if decryption fails (might be unencrypted data)
+        return '';
     }
-}
+};
+
+// Export aliases for backward compatibility
+export const encryptData = encrypt;
+export const decryptData = decrypt;
+

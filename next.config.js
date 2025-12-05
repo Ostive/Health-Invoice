@@ -7,8 +7,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true, // We are handling types carefully, but for production build we might want to be lenient if there are minor issues
   },
+  serverExternalPackages: ['@react-pdf/renderer'],
   experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
   },
 };
 

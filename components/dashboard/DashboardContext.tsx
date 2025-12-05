@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import { Invoice, InvoiceStatus, UserProfile, Folder } from '../../types/index';
 import { InvoiceService } from '../../services/invoiceService';
+import { PatientService } from '../../services/patientService';
 import { subscribeToPro, PLAN_LIMITS } from '../../services/stripeService';
 import { ToastType } from '../ui/toast';
+import { PatientInput } from '../../lib/schemas';
 
 // Polyfill for crypto.randomUUID
 const generateUUID = () => {
@@ -24,6 +26,7 @@ interface DashboardContextType {
     profile: UserProfile | null;
     invoices: Invoice[];
     folders: Folder[];
+    patients: PatientInput[];
     currentInvoice: Invoice | null;
     setCurrentInvoice: (invoice: Invoice | null) => void;
 
@@ -54,6 +57,8 @@ interface DashboardContextType {
     displayedInvoices: Invoice[];
     activeTab: 'editor' | 'preview';
     setActiveTab: (tab: 'editor' | 'preview') => void;
+    currentView: 'invoices' | 'patients';
+    setCurrentView: (view: 'invoices' | 'patients') => void;
 
     // Modals
     showUpgradeModal: boolean;
@@ -77,6 +82,7 @@ interface DashboardContextType {
 
     // Actions
     refreshProfile: () => Promise<void>;
+    refreshPatients: () => Promise<void>;
     handleNewInvoice: () => void;
     handleInvoiceSelect: (inv: Invoice) => void;
     handleSaveInvoice: () => Promise<void>;
@@ -117,10 +123,12 @@ export function DashboardProvider({
     // Data State
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
+    const [patients, setPatients] = useState<PatientInput[]>([]);
     const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
 
     // UI State
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+    const [currentView, setCurrentView] = useState<'invoices' | 'patients'>('invoices');
     const [isLoadingList, setIsLoadingList] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -210,13 +218,24 @@ export function DashboardProvider({
         }
     }, [user]);
 
+    const fetchPatients = useCallback(async () => {
+        if (!user?.id) return;
+        try {
+            const data = await PatientService.fetchAll();
+            setPatients(data);
+        } catch (err) {
+            console.error("Error fetching patients:", err);
+        }
+    }, [user]);
+
     useEffect(() => {
         if (user?.id) {
             fetchProfile();
             fetchInvoices();
             fetchFolders();
+            fetchPatients();
         }
-    }, [user, fetchProfile, fetchInvoices, fetchFolders]);
+    }, [user, fetchProfile, fetchInvoices, fetchFolders, fetchPatients]);
 
     useEffect(() => {
         if (profile && !profile.full_name) {
@@ -264,6 +283,7 @@ export function DashboardProvider({
         const newInv = createEmptyInvoice();
         setCurrentInvoice(newInv);
         setActiveTab('editor');
+        setCurrentView('invoices');
     };
 
     const handleInvoiceSelect = (inv: Invoice) => {
@@ -271,6 +291,7 @@ export function DashboardProvider({
         setCurrentInvoice(inv);
         localStorage.setItem('lastOpenedInvoiceId', inv.id);
         setActiveTab('editor');
+        setCurrentView('invoices');
     };
 
     const handleSaveInvoice = async () => {
@@ -466,34 +487,34 @@ export function DashboardProvider({
 
     const onLogout = async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' })
+            await fetch('/api/auth/logout', { method: 'POST' });
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('sb-') && key.includes('-auth-token')) {
-                    localStorage.removeItem(key)
+                    localStorage.removeItem(key);
                 }
-            })
-            sessionStorage.clear()
-            window.location.href = '/'
+            });
+            sessionStorage.clear();
+            window.location.href = '/';
         } catch (err) {
-            console.error("Logout failed:", err)
-            window.location.href = '/'
+            console.error("Logout failed:", err);
+            window.location.href = '/';
         }
     };
 
     return (
         <DashboardContext.Provider value={{
-            user, profile, invoices, folders, currentInvoice, setCurrentInvoice,
+            user, profile, invoices, folders, patients, currentInvoice, setCurrentInvoice,
             isLoadingList, isBusy, isSaving, isExporting, setIsExporting, isDeletingInvoice, isDeletingFolder, isSavingFolder, fetchError,
             selectedInvoiceIds, selectedFolderIds, selectedFolderId, setSelectedFolderId,
             searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
             showDateFilter, setShowDateFilter, dateRange, setDateRange, displayedInvoices,
-            activeTab, setActiveTab,
+            activeTab, setActiveTab, currentView, setCurrentView,
             showUpgradeModal, setShowUpgradeModal, invoiceToDelete, setInvoiceToDelete,
             folderToDelete, setFolderToDelete, showCreateFolderModal, setShowCreateFolderModal,
             folderToEdit, setFolderToEdit, showOnboarding, setShowOnboarding,
             // Bulk Delete Props
             showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
-            refreshProfile: fetchProfile,
+            refreshProfile: fetchProfile, refreshPatients: fetchPatients,
             handleNewInvoice, handleInvoiceSelect, handleSaveInvoice, handleDeleteInvoice,
             handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
             handleEditFolder, handleDeleteFolderClick, confirmFolderAction, confirmDeleteFolder,

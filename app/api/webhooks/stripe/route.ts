@@ -70,9 +70,7 @@ export async function POST(req: Request) {
                 }
 
                 if (userId) {
-
-
-                    // Try to update all fields first
+                    // Update user profile
                     const { error } = await supabase
                         .from('profiles')
                         .update({
@@ -83,37 +81,8 @@ export async function POST(req: Request) {
                         .eq('id', userId)
 
                     if (error) {
-
-                        // Fallback: try updating only is_pro and stripe_customer_id (in case stripe_subscription_id column is missing)
-                        if (error.code === '42703' || error.code === 'PGRST204') { // Column missing errors
-
-                            const { error: retryError } = await supabase
-                                .from('profiles')
-                                .update({
-                                    is_pro: true,
-                                    stripe_customer_id: customerId
-                                })
-                                .eq('id', userId)
-
-                            if (retryError) {
-
-                                // Final fallback: just is_pro
-                                const { error: finalError } = await supabase
-                                    .from('profiles')
-                                    .update({ is_pro: true })
-                                    .eq('id', userId)
-
-                                if (finalError) {
-
-                                } else {
-
-                                }
-                            } else {
-
-                            }
-                        }
-                    } else {
-
+                        console.error('Supabase update error (checkout):', error);
+                        throw new Error(`Database update failed: ${error.message}`);
                     }
                 }
                 // If userId is missing, try to find user by email

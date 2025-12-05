@@ -1,36 +1,37 @@
-'use client'
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function GlobalError({
     error,
     reset,
 }: {
-    error: Error & { digest?: string }
-    reset: () => void
+    error: Error & { digest?: string };
+    reset: () => void;
 }) {
+    useEffect(() => {
+        console.error('Global Error:', error);
+    }, [error]);
+
     return (
         <html>
             <body>
-                <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 text-center font-sans">
-                    <div className="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-red-500/10">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                        <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-
-                    <h2 className="text-3xl font-bold text-slate-900 mb-3">Erreur Critique</h2>
-
-                    <p className="text-slate-600 max-w-md mb-8 leading-relaxed">
-                        Une erreur inattendue s'est produite et l'application ne peut pas continuer. Veuillez rafraîchir la page.
+                    <h1 className="text-2xl font-bold text-slate-900 mb-2">Erreur Critique</h1>
+                    <p className="text-slate-600 mb-8 max-w-md">
+                        Une erreur inattendue s'est produite. Notre équipe a été notifiée.
                     </p>
-
-                    <button
-                        onClick={() => reset()}
-                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors"
-                    >
-                        Rafraîchir la page
-                    </button>
+                    <Button onClick={() => reset()} className="min-w-[120px]">
+                        Réessayer
+                    </Button>
                 </div>
             </body>
         </html>
-    )
+    );
 }
