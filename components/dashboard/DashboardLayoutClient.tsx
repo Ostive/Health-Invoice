@@ -157,6 +157,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col">
+                    {/* Main content wrapper */}
                     {children}
                 </div>
             </main>

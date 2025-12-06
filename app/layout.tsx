@@ -34,7 +34,8 @@ export const metadata: Metadata = {
   title: 'Facturier Soignant AI',
   description: 'Facturation intelligente pour infirmiers et kinés libéraux',
   icons: {
-    icon: '/favicon.png',
+    icon: '/favicon.ico',
+    apple: '/apple-icon.png',
   },
 }
 
