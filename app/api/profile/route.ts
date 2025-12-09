@@ -25,7 +25,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 });
         }
 
-        const { full_name, specialty, address, phone, siret, adeli } = validationResult.data;
+        const { full_name, specialty, address, phone, siret, adeli, is_vat_applicable } = validationResult.data;
 
         // Prepare payload with allowed fields only
         const payload = {
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
             phone,
             siret,
             adeli,
+            is_vat_applicable,
             updated_at: new Date().toISOString()
         }
 

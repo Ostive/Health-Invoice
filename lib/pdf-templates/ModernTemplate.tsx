@@ -291,22 +291,28 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ invoice, profile
               <Text style={styles.totalLabel}>Sous-total</Text>
               <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
             </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>TVA (0%)</Text>
-              <Text style={styles.totalValue}>{formatCurrency(tva)}</Text>
-            </View>
+            {safeProfile.is_vat_applicable && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>TVA (20%)</Text>
+                <Text style={styles.totalValue}>{formatCurrency(tva)}</Text>
+              </View>
+            )}
             <View style={styles.grandTotalRow}>
               <Text style={styles.grandTotalLabel}>Total à payer</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(total + tva)}</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(total + (safeProfile.is_vat_applicable ? tva : 0))}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.footer}>
           {safeInvoice.notes ? <Text style={styles.notes}>{safeText(safeInvoice.notes)}</Text> : null}
-          <Text style={styles.footerText}>
-            TVA non applicable, art. 293 B du CGI ou soins exonérés art. 261 du CGI.
-          </Text>
+          {safeProfile.is_vat_applicable ? (
+            <Text style={styles.footerText}>Montants exprimés en Euros. TVA applicable.</Text>
+          ) : (
+            <Text style={styles.footerText}>
+              TVA non applicable, art. 293 B du CGI ou soins exonérés art. 261 du CGI.
+            </Text>
+          )}
           {!safeProfile.is_pro ? <Text style={styles.footerText}>Généré par Facturier Soignant AI</Text> : null}
         </View>
       </Page>

@@ -34,12 +34,13 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
         address: profile.address || '',
         phone: profile.phone || '',
         siret: profile.siret || '',
-        adeli: profile.adeli || ''
+        adeli: profile.adeli || '',
+        is_vat_applicable: profile.is_vat_applicable || false
       });
     }
   }, [profile]);
 
-  const handleChange = (field: keyof UserProfile, value: string) => {
+  const handleChange = (field: keyof UserProfile, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -52,7 +53,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
       (formData.address || '') !== (profile.address || '') ||
       (formData.phone || '') !== (profile.phone || '') ||
       (formData.siret || '') !== (profile.siret || '') ||
-      (formData.adeli || '') !== (profile.adeli || '')
+      (formData.adeli || '') !== (profile.adeli || '') ||
+      (formData.is_vat_applicable) !== (profile.is_vat_applicable || false)
     );
   }, [formData, profile]);
 
@@ -257,6 +259,24 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
                           className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="text-sm font-semibold text-slate-800">Assujetti à la TVA ?</h5>
+                        <p className="text-xs text-slate-500 mt-1">Cochez cette case si vous devez facturer la TVA.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={formData.is_vat_applicable || false}
+                          onChange={(e) => handleChange('is_vat_applicable', e.target.checked)}
+                          disabled={isSaving}
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                      </label>
                     </div>
                   </div>
                 </section>

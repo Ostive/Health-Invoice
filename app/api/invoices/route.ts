@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { logAuditAction } from '@/lib/audit'
 import { InvoiceSchema } from '@/lib/schemas'
+import { InvoiceStatus } from '@/types'
 
 export async function GET() {
     const supabase = await createClient()
@@ -109,8 +110,10 @@ export async function POST(request: Request) {
         const validationResult = InvoiceSchema.safeParse(invoice);
 
         if (!validationResult.success) {
-            const errors = validationResult.error.issues.map(e => e.message);
-            return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 });
+            const errors = validationResult.error.issues.map(issue => issue.message);
+            // Return unique errors to avoid duplicates
+            const uniqueErrors = Array.from(new Set(errors));
+            return NextResponse.json({ error: 'Validation failed', errors: uniqueErrors }, { status: 400 });
         }
 
         // Use validated data
@@ -140,19 +143,63 @@ export async function POST(request: Request) {
             }));
         }
 
+        // --- NEW: Immutability & Snapshot Logic ---
+
+        // 1. Fetch existing invoice if upgrading
+        let existingInvoice = null;
+        let sellerSnapshot = validatedInvoice.seller_snapshot;
+
+        if (validatedInvoice.id) {
+            const { data, error: fetchError } = await supabase
+                .from('invoices')
+                .select('*')
+                .eq('id', validatedInvoice.id)
+                .single();
+
+            if (!fetchError && data) {
+                existingInvoice = data;
+
+                // Existing snapshot takes precedence if we aren't explicitly overwriting?
+                // Actually, let's keep existing snapshot if it was already there.
+                if (existingInvoice.seller_snapshot) {
+                    sellerSnapshot = existingInvoice.seller_snapshot;
+                }
+
+                // Check Immutability
+                const isFinalized = existingInvoice.status === InvoiceStatus.SENT || existingInvoice.status === InvoiceStatus.PAID;
+
+                if (isFinalized) {
+                    if (validatedInvoice.status === existingInvoice.status) {
+                        return NextResponse.json({ error: 'Cannot edit an invoice that has been sent or paid.' }, { status: 403 })
+                    }
+                }
+            }
+        }
+
+        // Capture Snapshot if becoming SENT (and no snapshot exists yet)
+        if (validatedInvoice.status === InvoiceStatus.SENT && !sellerSnapshot) {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (!profileError && profile) {
+                sellerSnapshot = profile;
+            }
+        }
+
         const payload = {
             ...invoiceToSave,
             user_id: user.id,
             updated_at: new Date().toISOString(),
-            // For new invoices, force number to null to let DB trigger generate it
             ...(!validatedInvoice.id && {
                 created_at: new Date().toISOString(),
                 number: null
             }),
-            patient_id: validatedInvoice.patientId || null
+            patient_id: validatedInvoice.patientId || null,
+            seller_snapshot: sellerSnapshot
         }
-
-
 
         const { data, error } = await supabase
             .from('invoices')
@@ -160,10 +207,8 @@ export async function POST(request: Request) {
             .select()
             .single()
 
-
-        if (error) console.error('API: Error saving invoice:', error);
-
         if (error) {
+            console.error('API: Error saving invoice:', error);
             if (error.code === '23505') {
                 return NextResponse.json({ error: 'Invoice number already exists' }, { status: 409 })
             }
@@ -211,7 +256,6 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ data: responseData, success: true })
-
     } catch (error: any) {
         console.error('Error saving invoice:', error)
         return NextResponse.json(

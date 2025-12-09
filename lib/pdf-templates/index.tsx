@@ -14,11 +14,13 @@ export interface InvoicePDFProps {
 // Helper function to get the appropriate template component (returns the Document element)
 export const getInvoicePDFTemplate = (invoice: Invoice, profile: Partial<UserProfile>) => {
   const total = invoice.items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
-  const tva = total * 0.0;
+  const effectiveProfile = invoice.seller_snapshot || profile;
+  const isVatApplicable = effectiveProfile.is_vat_applicable || false;
+  const tva = isVatApplicable ? total * 0.20 : 0;
 
   const templateProps = {
     invoice,
-    profile,
+    profile: effectiveProfile,
     total,
     tva,
   };

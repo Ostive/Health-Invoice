@@ -40,6 +40,7 @@ export interface Invoice {
     template: InvoiceTemplateId;
     folderId?: string | null; // Link to a folder
     patientId?: string | null; // Link to a patient
+    seller_snapshot?: any; // Snapshot of seller profile at time of issuance
 }
 
 // User Profile for Subscription and Invoice Customization
@@ -58,6 +59,7 @@ export interface UserProfile {
     current_period_end?: string;
     invoice_counter?: number;
     last_invoice_year?: number;
+    is_vat_applicable?: boolean;
 }
 
 // For Gemini Generation

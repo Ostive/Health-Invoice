@@ -85,7 +85,7 @@ interface DashboardContextType {
     refreshPatients: () => Promise<void>;
     handleNewInvoice: () => void;
     handleInvoiceSelect: (inv: Invoice) => void;
-    handleSaveInvoice: () => Promise<void>;
+    handleSaveInvoice: () => Promise<boolean>;
     handleDeleteInvoice: () => Promise<void>;
     handleBulkDeleteInvoices: () => Promise<void>;
     handleBulkDeleteFolders: () => Promise<void>;
@@ -105,6 +105,9 @@ interface DashboardContextType {
     // Toast
     toast: { message: string; type: ToastType } | null;
     setToast: (toast: { message: string; type: ToastType } | null) => void;
+
+    // State
+    hasUnsavedChanges: boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -145,6 +148,14 @@ export function DashboardProvider({
     const [folderSearchQuery, setFolderSearchQuery] = useState('');
     const [showDateFilter, setShowDateFilter] = useState(false);
     const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+
+    // Computed: Check for unsaved changes
+    const hasUnsavedChanges = React.useMemo(() => {
+        if (!currentInvoice) return false;
+        const saved = invoices.find(i => i.id === currentInvoice.id);
+        if (!saved) return true; // New invoice not in list
+        return JSON.stringify(currentInvoice) !== JSON.stringify(saved);
+    }, [currentInvoice, invoices]);
 
     // Modals
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -294,11 +305,19 @@ export function DashboardProvider({
         setCurrentView('invoices');
     };
 
-    const handleSaveInvoice = async () => {
-        if (!currentInvoice || !user?.id) return;
+    const handleSaveInvoice = async (): Promise<boolean> => {
+        if (!currentInvoice || !user?.id) return false;
+
+        // Auto-fix missing due date to prevent validation error
+        const invoiceToSave = { ...currentInvoice };
+        if (!invoiceToSave.dueDate) {
+            // Default to invoice date (due immediately) if not set
+            invoiceToSave.dueDate = invoiceToSave.date;
+        }
+
         setIsSaving(true);
         try {
-            const savedInvoice = await InvoiceService.save(currentInvoice, user.id);
+            const savedInvoice = await InvoiceService.save(invoiceToSave, user.id);
             setInvoices(prev => {
                 const exists = prev.find(i => i.id === savedInvoice.id);
                 return exists
@@ -307,18 +326,32 @@ export function DashboardProvider({
             });
             setCurrentInvoice(savedInvoice);
             setToast({ message: `Facture sauvegardée: ${savedInvoice.number}`, type: 'success' });
+            return true;
         } catch (error: any) {
             let message = error.message;
-            if (message.includes('Client name is required')) {
+
+            // User-friendly Error Mapping
+            if (message.includes('Client name is required') || message.includes('Le nom du client est requis')) {
                 message = 'Le nom du client est obligatoire.';
             } else if (message.includes('Invoice date is required')) {
                 message = 'La date de la facture est obligatoire.';
-            } else if (message.includes('At least one item is required')) {
+            } else if (message.includes('At least one item is required') || message.includes('Au moins une prestation est requise')) {
                 message = 'Au moins une prestation est requise.';
             } else if (message.includes('Validation failed')) {
-                message = message.replace('Validation failed:', 'Erreur de validation :');
+                // Strip the prefix
+                let validMsg = message.replace('Validation failed:', '').trim();
+
+                // Handle generic Zod "Required" errors (often "Invalid input: expected string, received undefined")
+                if (validMsg.includes('expected string, received undefined')) {
+                    // Try to be more specific based on common missing fields if we can, otherwise generic
+                    message = "Erreur de validation : Un champ obligatoire (text) est manquant (ex: Nom du client, Date, Description).";
+                } else {
+                    message = `Erreur de validation : ${validMsg}`;
+                }
             }
+
             setToast({ message: `Erreur de sauvegarde: ${message}`, type: 'error' });
+            return false;
         } finally {
             setIsSaving(false);
         }
@@ -519,7 +552,8 @@ export function DashboardProvider({
             handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
             handleEditFolder, handleDeleteFolderClick, confirmFolderAction, confirmDeleteFolder,
             promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
-            handleStartUpgrade, handleOpenSettings, onLogout, toast, setToast
+            handleStartUpgrade, handleOpenSettings, onLogout, toast, setToast,
+            hasUnsavedChanges
         }}>
             {children}
         </DashboardContext.Provider>
