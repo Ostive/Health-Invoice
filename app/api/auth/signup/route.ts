@@ -1,12 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { SignUpSchema } from '@/lib/schemas'
-import { handleApiError } from '@/lib/api-errors'
+import { handleApiError, tooManyRequests } from '@/lib/api-errors'
+import { enforceIpRateLimit } from '@/lib/ip-rate-limit'
 
 const ROUTE = 'api/auth/signup'
 
 export async function POST(request: Request) {
     try {
+        const { allowed, retryAfter } = await enforceIpRateLimit('signup', { limit: 5, windowSeconds: 600 })
+        if (!allowed) throw tooManyRequests(`Trop de tentatives. Réessayez dans ${retryAfter}s.`)
+
         const body = await request.json()
         const validation = SignUpSchema.safeParse(body)
 

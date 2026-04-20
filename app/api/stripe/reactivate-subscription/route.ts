@@ -1,54 +1,51 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { handleApiError, unauthorized, notFound } from '@/lib/api-errors'
+
+const ROUTE = 'api/stripe/reactivate-subscription'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2025-01-27.acacia' as any,
-});
+})
 
-export async function POST(req: Request) {
+export async function POST() {
+    let userId: string | undefined
+
     try {
-        const { userId } = await req.json();
-
-        if (!userId) {
-            return new NextResponse('User ID is required', { status: 400 });
-        }
-
-        // 1. Get user profile to get stripe_subscription_id
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabase = await createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const { data: profile } = await supabase
             .from('profiles')
             .select('stripe_subscription_id')
-            .eq('id', userId)
-            .single();
+            .eq('id', user.id)
+            .single()
 
-        if (!profile?.stripe_subscription_id) {
-            return new NextResponse('No active subscription found', { status: 404 });
-        }
+        if (!profile?.stripe_subscription_id) throw notFound('No active subscription found')
 
-        // 2. Reactivate subscription in Stripe
         const subscription = await stripe.subscriptions.update(
             profile.stripe_subscription_id,
             { cancel_at_period_end: false }
-        );
+        )
 
-        // 3. Update Supabase
-        await supabase
+        const currentPeriodEnd = (subscription as any).current_period_end
+        const admin = createAdminClient()
+        await admin
             .from('profiles')
             .update({
                 cancel_at_period_end: false,
-                current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString()
+                current_period_end: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000).toISOString()
+                    : null,
             })
-            .eq('id', userId);
+            .eq('id', user.id)
 
-        return NextResponse.json({ success: true });
-
-    } catch (error: any) {
-        console.error('Error reactivating subscription:', error);
-        return new NextResponse(error.message, { status: 500 });
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

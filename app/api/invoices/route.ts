@@ -116,9 +116,34 @@ export async function POST(request: Request) {
                 existingInvoice = existing
                 if (existing.seller_snapshot) sellerSnapshot = existing.seller_snapshot
 
-                const isFinalized = existing.status === InvoiceStatus.SENT || existing.status === InvoiceStatus.PAID
-                if (isFinalized && invoice.status === existing.status) {
-                    throw forbidden('Cannot edit an invoice that has been sent or paid.')
+                // Once an invoice is PAID, it is fully immutable.
+                if (existing.status === InvoiceStatus.PAID) {
+                    throw forbidden('Cette facture est payée et ne peut plus être modifiée.')
+                }
+
+                // Once SENT, only the status transition SENT → PAID is allowed. All other fields frozen.
+                if (existing.status === InvoiceStatus.SENT) {
+                    const statusChangedToPaid = invoice.status === InvoiceStatus.PAID
+                    const onlyStatusMayChange = statusChangedToPaid
+
+                    if (!onlyStatusMayChange) {
+                        throw forbidden('Une facture envoyée ne peut être modifiée que pour être marquée comme payée.')
+                    }
+
+                    // Ensure client/items/amounts were not tampered with on the way to PAID
+                    const frozen = ['number', 'date', 'dueDate', 'template']
+                    for (const field of frozen) {
+                        if (JSON.stringify((invoice as any)[field]) !== JSON.stringify(existing[field === 'dueDate' ? 'due_date' : field])) {
+                            throw forbidden(`Le champ ${field} ne peut pas être modifié après envoi.`)
+                        }
+                    }
+                    if (JSON.stringify(invoice.client) !== JSON.stringify(existing.client)) {
+                        throw forbidden('Le client ne peut pas être modifié après envoi.')
+                    }
+                    if (JSON.stringify(invoice.items?.map(({ description, quantity, unitPrice }) => ({ description, quantity, unitPrice }))) !==
+                        JSON.stringify(existing.items?.map((i: any) => ({ description: decrypt(i.description) || i.description, quantity: i.quantity, unitPrice: i.unitPrice })))) {
+                        throw forbidden('Les prestations ne peuvent pas être modifiées après envoi.')
+                    }
                 }
             }
         }

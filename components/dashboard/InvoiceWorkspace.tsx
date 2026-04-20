@@ -97,10 +97,13 @@ export const InvoiceWorkspace = () => {
             const response = await fetch('/api/generate-pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invoice: currentInvoice, profile: profile }),
+                body: JSON.stringify({ invoiceId: currentInvoice.id }),
             });
 
-            if (!response.ok) throw new Error('Failed to generate PDF');
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to generate PDF');
+            }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);

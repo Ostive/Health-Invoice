@@ -3,12 +3,28 @@ import { renderToStream } from '@react-pdf/renderer'
 import { createClient } from '@/lib/supabase/server'
 import { logAuditAction } from '@/lib/audit'
 import { getInvoicePDFTemplate } from '@/lib/pdf-templates'
-import { UserProfile } from '@/types'
+import { Invoice, UserProfile } from '@/types'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { PdfRequestSchema } from '@/lib/schemas'
+import { decrypt } from '@/lib/encryption'
 import { handleApiError, unauthorized, notFound, tooManyRequests, ApiError } from '@/lib/api-errors'
 
 const ROUTE = 'api/generate-pdf'
+
+function decryptInvoice(row: any): Invoice {
+    const decrypted = { ...row }
+    if (decrypted.client?.ssn) {
+        decrypted.client = { ...decrypted.client, ssn: decrypt(decrypted.client.ssn) || decrypted.client.ssn }
+    }
+    if (decrypted.notes) decrypted.notes = decrypt(decrypted.notes) || decrypted.notes
+    if (Array.isArray(decrypted.items)) {
+        decrypted.items = decrypted.items.map((item: any) => ({
+            ...item,
+            description: item.description ? (decrypt(item.description) || item.description) : item.description,
+        }))
+    }
+    return decrypted as Invoice
+}
 
 export async function POST(req: NextRequest) {
     let userId: string | undefined
@@ -26,17 +42,34 @@ export async function POST(req: NextRequest) {
         const validation = PdfRequestSchema.safeParse(body)
         if (!validation.success) throw validation.error
 
-        const invoice = validation.data.invoice
+        const { invoiceId } = validation.data
 
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
+        // Server-side fetch — client cannot tamper with amounts, number, client name, etc.
+        const { data: invoiceRow, error: invoiceError } = await supabase
+            .from('invoices')
             .select('*')
-            .eq('id', user.id)
+            .eq('id', invoiceId)
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
             .single()
 
-        if (profileError || !profile) throw notFound('Profile not found')
+        if (invoiceError || !invoiceRow) throw notFound('Invoice not found')
 
-        const pdfDocument = getInvoicePDFTemplate(invoice as any, profile as Partial<UserProfile>)
+        // Use seller_snapshot (frozen at SENT time) if present, else current profile
+        let profile: Partial<UserProfile> | null = invoiceRow.seller_snapshot ?? null
+        if (!profile) {
+            const { data: currentProfile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+            if (profileError || !currentProfile) throw notFound('Profile not found')
+            profile = currentProfile
+        }
+
+        const invoice = decryptInvoice(invoiceRow)
+
+        const pdfDocument = getInvoicePDFTemplate(invoice, profile as Partial<UserProfile>)
         const stream = await renderToStream(pdfDocument)
 
         const chunks: Buffer[] = []
@@ -52,6 +85,7 @@ export async function POST(req: NextRequest) {
         logAuditAction({
             action: 'GENERATE_PDF',
             resourceType: 'invoice',
+            resourceId: invoiceId,
             userId: user.id,
         })
 
