@@ -1,43 +1,35 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { BatchIdsSchema } from '@/lib/schemas'
+import { handleApiError, unauthorized } from '@/lib/api-errors'
+
+const ROUTE = 'api/folders/batch'
 
 export async function POST(request: Request) {
     const supabase = await createClient()
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const body = await request.json()
-        const { ids } = body
+        const validation = BatchIdsSchema.safeParse(body)
+        if (!validation.success) throw validation.error
 
-        if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return NextResponse.json({ error: 'No IDs provided' }, { status: 400 })
-        }
-
-        // Note: In Supabase/Postgres, if foreign keys are set to SET NULL or CASCADE,
-        // deleting the folder will handle the invoices automatically.
-        // Assuming standard behavior where invoices just lose their folder association (SET NULL)
-        // or we might want to keep them. The user just asked to remove folders.
+        const { ids } = validation.data
 
         const { error } = await supabase
             .from('folders')
             .delete()
             .in('id', ids)
-            .eq('user_id', user.id) // Security: Ensure user owns the folders
+            .eq('user_id', user.id)
 
         if (error) throw error
 
         return NextResponse.json({ success: true, count: ids.length })
-
-    } catch (error: any) {
-        console.error('Error batch deleting folders:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

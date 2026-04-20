@@ -1,79 +1,63 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { renderToStream } from '@react-pdf/renderer';
-import { createClient } from '@/lib/supabase/server';
-import { logAuditAction } from '@/lib/audit';
-import { getInvoicePDFTemplate } from '@/lib/pdf-templates';
-import { Invoice, UserProfile } from '@/types';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { NextRequest, NextResponse } from 'next/server'
+import { renderToStream } from '@react-pdf/renderer'
+import { createClient } from '@/lib/supabase/server'
+import { logAuditAction } from '@/lib/audit'
+import { getInvoicePDFTemplate } from '@/lib/pdf-templates'
+import { UserProfile } from '@/types'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { PdfRequestSchema } from '@/lib/schemas'
+import { handleApiError, unauthorized, notFound, tooManyRequests, ApiError } from '@/lib/api-errors'
+
+const ROUTE = 'api/generate-pdf'
 
 export async function POST(req: NextRequest) {
+    let userId: string | undefined
+
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw unauthorized()
+        userId = user.id
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        const { success, message } = await checkRateLimit(user.id, 'GENERATE_PDF')
+        if (!success) throw tooManyRequests(message ?? 'Rate limit exceeded')
 
-        // Check Rate Limit
-        const { success, message } = await checkRateLimit(user.id, 'GENERATE_PDF');
-        if (!success) {
-            return NextResponse.json({ error: message }, { status: 429 });
-        }
+        const body = await req.json()
+        const validation = PdfRequestSchema.safeParse(body)
+        if (!validation.success) throw validation.error
 
-        const { invoice } = await req.json();
+        const invoice = validation.data.invoice
 
-        if (!invoice) {
-            return NextResponse.json({ error: 'Invoice data is required' }, { status: 400 });
-        }
-
-        // Fetch profile directly from database to prevent impersonation
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .single()
 
-        if (profileError || !profile) {
-            return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-        }
+        if (profileError || !profile) throw notFound('Profile not found')
 
-        // Get the appropriate template document
-        const pdfDocument = getInvoicePDFTemplate(
-            invoice as Invoice,
-            profile as Partial<UserProfile>
-        );
+        const pdfDocument = getInvoicePDFTemplate(invoice as any, profile as Partial<UserProfile>)
+        const stream = await renderToStream(pdfDocument)
 
-
-
-
-        // Render to stream
-        const stream = await renderToStream(pdfDocument);
-
-        // Convert stream to buffer
-        const chunks: Buffer[] = [];
+        const chunks: Buffer[] = []
         for await (const chunk of stream) {
-            chunks.push(Buffer.from(chunk));
+            chunks.push(Buffer.from(chunk))
         }
-        const pdfBuffer = Buffer.concat(chunks);
+        const pdfBuffer = Buffer.concat(chunks)
 
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+            throw new ApiError(500, 'Generated PDF buffer is empty', 'PDF_EMPTY')
+        }
 
-
-        // Log Audit Action
         logAuditAction({
             action: 'GENERATE_PDF',
             resourceType: 'invoice',
-            userId: user.id
-        });
+            userId: user.id,
+        })
 
-        if (!pdfBuffer || pdfBuffer.length === 0) {
-            throw new Error("Generated PDF buffer is empty");
-        }
-
-        // Generate filename
-        const safeNumber = invoice.number.replace(/[^a-zA-Z0-9-]/g, '_');
-        const safeClientName = (invoice.client.name || 'Client').replace(/[^a-zA-Z0-9-]/g, '_');
-        const filename = `Facture-${safeNumber}-${safeClientName}.pdf`;
+        const safeNumber = (invoice.number ?? 'draft').replace(/[^a-zA-Z0-9-]/g, '_')
+        const safeClientName = (invoice.client.name || 'Client').replace(/[^a-zA-Z0-9-]/g, '_')
+        const filename = `Facture-${safeNumber}-${safeClientName}.pdf`
 
         return new NextResponse(pdfBuffer, {
             headers: {
@@ -81,16 +65,8 @@ export async function POST(req: NextRequest) {
                 'Content-Disposition': `attachment; filename="${filename}"`,
                 'Content-Length': pdfBuffer.length.toString(),
             },
-        });
-    } catch (error: any) {
-        console.error('PDF Generation Error:', error);
-        console.error('Error stack:', error.stack);
-
-        // Extract only the error message, not any objects
-        const errorMessage = typeof error === 'string' ? error :
-            error?.message ? String(error.message) :
-                'Failed to generate PDF';
-
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
+        })
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

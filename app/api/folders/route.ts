@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-
 import { FolderSchema } from '@/lib/schemas'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-errors'
+
+const ROUTE = 'api/folders'
 
 export async function GET() {
     const supabase = await createClient()
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const { data, error } = await supabase
             .from('folders')
@@ -20,45 +21,31 @@ export async function GET() {
             .order('name', { ascending: true })
 
         if (error) {
-            if (error.code === '42P01') {
-                return NextResponse.json([])
-            }
+            if (error.code === '42P01') return NextResponse.json([])
             throw error
         }
 
         return NextResponse.json(data)
-    } catch (error: any) {
-        console.error('Error fetching folders:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }
 
 export async function POST(request: Request) {
     const supabase = await createClient()
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const body = await request.json()
+        const validation = FolderSchema.safeParse(body)
+        if (!validation.success) throw validation.error
 
-        // Zod Validation
-        const validationResult = FolderSchema.safeParse(body);
+        const { name, color } = validation.data
 
-        if (!validationResult.success) {
-            const errors = validationResult.error.issues.map(issue => issue.message);
-            return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 });
-        }
-
-        const { name, color } = validationResult.data;
-
-        // Check for existing folder with same name
         const { data: existing } = await supabase
             .from('folders')
             .select('id')
@@ -66,9 +53,7 @@ export async function POST(request: Request) {
             .ilike('name', name)
             .single()
 
-        if (existing) {
-            return NextResponse.json({ error: 'Un dossier avec ce nom existe déjà' }, { status: 400 })
-        }
+        if (existing) throw badRequest('Un dossier avec ce nom existe déjà')
 
         const { data, error } = await supabase
             .from('folders')
@@ -76,20 +61,10 @@ export async function POST(request: Request) {
             .select()
             .single()
 
-        if (error) {
-            if (error.code === '42P01') {
-                return NextResponse.json({ error: "Table 'folders' missing" }, { status: 500 })
-            }
-            throw error
-        }
+        if (error) throw error
 
         return NextResponse.json(data)
-
-    } catch (error: any) {
-        console.error('Error creating folder:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

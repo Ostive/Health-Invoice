@@ -1,69 +1,60 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenAI } from "@google/genai";
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { NextResponse } from 'next/server'
+import { GoogleGenAI } from "@google/genai"
+import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { handleApiError, unauthorized, badRequest, tooManyRequests, ApiError } from '@/lib/api-errors'
+
+const ROUTE = 'api/transcribe'
+
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024
+const ALLOWED_AUDIO_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav']
 
 export async function POST(req: Request) {
+    let userId: string | undefined
+
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw unauthorized()
+        userId = user.id
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const { success, message } = await checkRateLimit(user.id, 'GENERATE_INVOICE_AI')
+        if (!success) throw tooManyRequests(message ?? 'Rate limit exceeded')
+
+        const formData = await req.formData()
+        const audioFile = formData.get('audio')
+
+        if (!(audioFile instanceof File)) throw badRequest('Fichier audio manquant')
+        if (audioFile.size === 0) throw badRequest('Fichier audio vide')
+        if (audioFile.size > MAX_AUDIO_BYTES) throw badRequest('Fichier audio trop volumineux (max 25 Mo)')
+        if (!ALLOWED_AUDIO_TYPES.some(t => audioFile.type?.startsWith(t))) {
+            throw badRequest('Format audio non supporté')
         }
 
-        // Check Rate Limit (reuse the AI generation limit for now, or add a new one)
-        const { success, message } = await checkRateLimit(user.id, 'GENERATE_INVOICE_AI');
-        if (!success) {
-            return NextResponse.json({ error: message }, { status: 429 });
-        }
+        const apiKey = process.env.GEMINI_API_KEY
+        if (!apiKey) throw new ApiError(500, 'Configuration serveur manquante', 'CONFIG_MISSING')
 
-        const formData = await req.formData();
-        const audioFile = formData.get('audio') as File;
+        const ai = new GoogleGenAI({ apiKey })
 
-        if (!audioFile) {
-            return NextResponse.json({ error: "Fichier audio manquant" }, { status: 400 });
-        }
-
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: "Configuration serveur manquante" }, { status: 500 });
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
-
-        // Convert File to ArrayBuffer then Base64
-        const arrayBuffer = await audioFile.arrayBuffer();
-        const base64Audio = Buffer.from(arrayBuffer).toString('base64');
-        const mimeType = audioFile.type || 'audio/webm';
+        const arrayBuffer = await audioFile.arrayBuffer()
+        const base64Audio = Buffer.from(arrayBuffer).toString('base64')
+        const mimeType = audioFile.type || 'audio/webm'
 
         const response = await ai.models.generateContent({
             model: "gemini-2.0-flash",
             contents: [{
                 parts: [
-                    {
-                        inlineData: {
-                            mimeType: mimeType,
-                            data: base64Audio
-                        }
-                    },
-                    { text: "Transcribe exactly what is said in this audio in French. Do not add any commentary." }
-                ]
-            }]
-        });
+                    { inlineData: { mimeType, data: base64Audio } },
+                    { text: "Transcribe exactly what is said in this audio in French. Do not add any commentary." },
+                ],
+            }],
+        })
 
-        const text = response.text;
-        if (!text) {
-            throw new Error("Impossible de transcrire l'audio");
-        }
+        const text = response.text
+        if (!text) throw new ApiError(502, "Impossible de transcrire l'audio", 'AI_EMPTY_RESPONSE')
 
-        return NextResponse.json({ text });
-
-    } catch (error: any) {
-        console.error("Erreur Transcription:", error);
-        return NextResponse.json(
-            { error: error.message || "Erreur lors de la transcription" },
-            { status: 500 }
-        );
+        return NextResponse.json({ text })
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

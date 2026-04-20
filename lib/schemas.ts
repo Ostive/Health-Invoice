@@ -91,8 +91,38 @@ export const SignUpSchema = z.object({
         .regex(/[!@#$%^&*(),.?":{}|<>]/, "un caractère spécial"),
 });
 
+export const LoginSchema = z.object({
+    email: z.email("Email invalide"),
+    password: z.string().min(1, "Le mot de passe est requis"),
+});
+
+export const BatchIdsSchema = z.object({
+    ids: z.array(z.uuid("Identifiant invalide")).min(1, "Au moins un identifiant est requis"),
+});
+
+export const FolderUpdateSchema = z.object({
+    name: z.string().min(1, "Le nom du dossier est requis"),
+    color: z.string().min(1).optional().default('blue'),
+});
+
+export const AiInvoiceTextSchema = z.object({
+    text: z.string({ message: "Le texte de description est requis" })
+        .min(1, "Le texte de description est requis")
+        .max(5000, "Texte trop long (max 5000 caractères)"),
+});
+
+export const PdfRequestSchema = z.object({
+    invoice: InvoiceSchema,
+});
+
+export const SaveInvoiceSchema = z.object({
+    invoice: InvoiceSchema,
+});
+
 export type InvoiceInput = z.infer<typeof InvoiceSchema>;
 export type UserProfileInput = z.infer<typeof UserProfileSchema>;
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;
 export type FolderInput = z.infer<typeof FolderSchema>;
 export type PatientInput = z.infer<typeof PatientSchema>;
+export type LoginInput = z.infer<typeof LoginSchema>;
+export type BatchIdsInput = z.infer<typeof BatchIdsSchema>;

@@ -18,8 +18,14 @@ export async function POST(req: Request) {
         const userId = user.id
         const userEmail = user.email
 
-        // Get the price ID from environment (you need to add this)
-        const priceId = process.env.STRIPE_PRICE_ID || 'price_1SXoToHwsA26qdYQcXtL5MLY' // Use your actual price ID
+        const priceId = process.env.STRIPE_PRICE_ID
+        if (!priceId) {
+            console.error('STRIPE_PRICE_ID is not set')
+            return NextResponse.json(
+                { error: 'Stripe price not configured' },
+                { status: 500 }
+            )
+        }
 
         // Create checkout session
         const session = await stripe.checkout.sessions.create({

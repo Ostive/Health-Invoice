@@ -1,37 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { FolderUpdateSchema } from '@/lib/schemas'
+import { handleApiError, unauthorized, badRequest } from '@/lib/api-errors'
+
+const ROUTE = 'api/folders/[id]'
 
 export async function DELETE(
-    request: Request,
+    _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = await createClient()
     const { id } = await params
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const { error } = await supabase
             .from('folders')
             .delete()
             .eq('id', id)
-            .eq('user_id', user.id) // Security: Ensure user owns the folder
+            .eq('user_id', user.id)
 
-        if (error) {
-            throw error
-        }
+        if (error) throw error
 
         return NextResponse.json({ success: true })
-    } catch (error: any) {
-        console.error('Error deleting folder:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }
 
@@ -41,22 +38,19 @@ export async function PUT(
 ) {
     const supabase = await createClient()
     const { id } = await params
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const body = await request.json()
-        const { name, color } = body
+        const validation = FolderUpdateSchema.safeParse(body)
+        if (!validation.success) throw validation.error
 
-        if (!name) {
-            return NextResponse.json({ error: 'Folder name is required' }, { status: 400 })
-        }
+        const { name, color } = validation.data
 
-        // Check for existing folder with same name (excluding current)
         const { data: existing } = await supabase
             .from('folders')
             .select('id')
@@ -65,9 +59,7 @@ export async function PUT(
             .neq('id', id)
             .single()
 
-        if (existing) {
-            return NextResponse.json({ error: 'Un dossier avec ce nom existe déjà' }, { status: 400 })
-        }
+        if (existing) throw badRequest('Un dossier avec ce nom existe déjà')
 
         const { data, error } = await supabase
             .from('folders')
@@ -77,16 +69,10 @@ export async function PUT(
             .select()
             .single()
 
-        if (error) {
-            throw error
-        }
+        if (error) throw error
 
         return NextResponse.json(data)
-    } catch (error: any) {
-        console.error('Error updating folder:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

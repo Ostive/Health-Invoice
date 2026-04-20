@@ -1,47 +1,43 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { logAuditAction } from '@/lib/audit'
+import { BatchIdsSchema } from '@/lib/schemas'
+import { handleApiError, unauthorized } from '@/lib/api-errors'
+
+const ROUTE = 'api/invoices/batch'
 
 export async function POST(request: Request) {
     const supabase = await createClient()
+    let userId: string | undefined
 
     try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
+        if (authError || !user) throw unauthorized()
+        userId = user.id
 
         const body = await request.json()
-        const { ids } = body
+        const validation = BatchIdsSchema.safeParse(body)
+        if (!validation.success) throw validation.error
 
-        if (!ids || !Array.isArray(ids) || ids.length === 0) {
-            return NextResponse.json({ error: 'No IDs provided' }, { status: 400 })
-        }
+        const { ids } = validation.data
 
         const { error } = await supabase
             .from('invoices')
             .update({ deleted_at: new Date().toISOString() })
             .in('id', ids)
-            .eq('user_id', user.id) // Security: Ensure user owns the invoices
+            .eq('user_id', user.id)
 
         if (error) throw error
 
-        // Log Audit Action
         logAuditAction({
             action: 'BATCH_DELETE_INVOICES',
             resourceType: 'invoice',
             userId: user.id,
             details: { count: ids.length, ids }
-        });
+        })
 
         return NextResponse.json({ success: true, count: ids.length })
-
-    } catch (error: any) {
-        console.error('Error batch deleting invoices:', error)
-        return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
-            { status: 500 }
-        )
+    } catch (error) {
+        return handleApiError(error, { route: ROUTE, userId })
     }
 }

@@ -200,7 +200,7 @@ export function DashboardProvider({
                 } as UserProfile);
             }
         } catch (err) {
-            console.error("Error fetching profile:", err);
+            console.warn("Error fetching profile:", err);
         }
     }, [user]);
 
@@ -225,7 +225,7 @@ export function DashboardProvider({
             const data = await InvoiceService.fetchFolders(user.id);
             setFolders(data);
         } catch (err) {
-            console.error("Error fetching folders:", err);
+            console.warn("Error fetching folders:", err);
         }
     }, [user]);
 
@@ -235,7 +235,7 @@ export function DashboardProvider({
             const data = await PatientService.fetchAll();
             setPatients(data);
         } catch (err) {
-            console.error("Error fetching patients:", err);
+            console.warn("Error fetching patients:", err);
         }
     }, [user]);
 
