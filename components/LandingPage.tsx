@@ -4,6 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { LegalPageType } from './Legal';
 import { Pricing } from './Pricing';
+import { HowItWorks } from './landing/HowItWorks';
+import { TargetAudience } from './landing/TargetAudience';
+import { Stats } from './landing/Stats';
+import { TrustBadges } from './landing/TrustBadges';
+import { FAQ } from './landing/FAQ';
+import { FinalCta } from './landing/FinalCta';
+import { Reveal } from './landing/Reveal';
 
 interface LandingPageProps {
    onLogin: () => void;
@@ -62,10 +69,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                </div>
 
                {/* Desktop Links */}
-               <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+               <div className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
+                  <button onClick={() => scrollToSection('how-it-works')} className="hover:text-primary-600 transition-colors">Comment ça marche</button>
                   <button onClick={() => scrollToSection('features')} className="hover:text-primary-600 transition-colors">Fonctionnalités</button>
-                  <button onClick={() => scrollToSection('testimonials')} className="hover:text-primary-600 transition-colors">Avis</button>
+                  <button onClick={() => scrollToSection('for-who')} className="hover:text-primary-600 transition-colors">Pour qui</button>
                   <button onClick={() => scrollToSection('pricing')} className="hover:text-primary-600 transition-colors">Tarifs</button>
+                  <button onClick={() => scrollToSection('faq')} className="hover:text-primary-600 transition-colors">FAQ</button>
                </div>
 
                {/* Actions */}
@@ -80,8 +89,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
          {isMobileMenuOpen && (
             <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-sm pt-28 px-6 animate-in slide-in-from-top-10 fade-in duration-200">
                <div className="flex flex-col gap-6 text-xl font-medium text-slate-800">
+                  <button onClick={() => scrollToSection('how-it-works')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
+                     Comment ça marche
+                     <svg className="w-5 h-5 text-slate-300 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
                   <button onClick={() => scrollToSection('features')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
                      Fonctionnalités
+                     <svg className="w-5 h-5 text-slate-300 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  <button onClick={() => scrollToSection('for-who')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
+                     Pour qui
                      <svg className="w-5 h-5 text-slate-300 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                   </button>
                   <button onClick={() => scrollToSection('testimonials')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
@@ -90,6 +107,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                   </button>
                   <button onClick={() => scrollToSection('pricing')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
                      Tarifs
+                     <svg className="w-5 h-5 text-slate-300 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  <button onClick={() => scrollToSection('faq')} className="border-b border-slate-100 pb-4 text-left flex justify-between items-center group">
+                     FAQ
                      <svg className="w-5 h-5 text-slate-300 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                   </button>
                   <div className="mt-8 flex flex-col gap-4">
@@ -221,15 +242,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                </div>
             </section>
 
+            {/* How It Works - 3 steps workflow */}
+            <HowItWorks />
+
             {/* Bento Grid Features Section */}
             <section id="features" className="py-16 md:py-24 bg-white relative overflow-hidden">
                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-                     <h2 className="text-3xl md:text-4xl font-serif text-slate-900 mb-4">L'intelligence artificielle <br /> au service de votre temps libre.</h2>
-                     <p className="text-slate-600">Nous avons repensé la facturation médicale pour qu'elle ne soit plus une corvée, mais une simple formalité de quelques secondes.</p>
-                  </div>
+                  <Reveal className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+                     <span className="inline-block text-xs font-bold text-primary-600 uppercase tracking-widest mb-4">Fonctionnalités</span>
+                     <h2 className="text-3xl md:text-5xl font-serif text-slate-900 mb-4 leading-tight">L'intelligence artificielle <br /> <span className="italic text-primary-600/80">au service de votre temps.</span></h2>
+                     <p className="text-slate-600 text-base md:text-lg">Nous avons repensé la facturation médicale pour qu'elle ne soit plus une corvée, mais une simple formalité de quelques secondes.</p>
+                  </Reveal>
 
                   {/* Responsive Bento Grid - 2 cols on mobile, 3 on desktop */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 auto-rows-auto md:auto-rows-[minmax(250px,auto)]">
@@ -303,12 +328,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                </div>
             </section>
 
+            {/* Target Audience - For whom */}
+            <TargetAudience />
+
+            {/* Stats Band */}
+            <Stats />
+
             {/* Clean Testimonials */}
             <section id="testimonials" className="py-16 md:py-24 bg-slate-50">
                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="text-center mb-12 md:mb-16">
-                     <h2 className="text-3xl font-serif text-slate-900">Recommandé par vos confrères</h2>
-                  </div>
+                  <Reveal className="text-center mb-12 md:mb-16">
+                     <span className="inline-block text-xs font-bold text-primary-600 uppercase tracking-widest mb-4">Témoignages</span>
+                     <h2 className="text-3xl md:text-5xl font-serif text-slate-900 leading-tight">Recommandé par <span className="italic text-primary-600/80">vos confrères.</span></h2>
+                  </Reveal>
 
                   <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-8 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
                      <div className="min-w-[85vw] md:min-w-0 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 snap-center">
@@ -360,32 +392,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
             {/* Pricing */}
             <Pricing onSubscribe={onRegister} isLoggedIn={false} />
 
-            {/* Simple FAQ */}
-            <section id="faq" className="py-16 md:py-24 bg-white">
-               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <h2 className="text-3xl font-serif text-slate-900 text-center mb-8 md:mb-12">Questions Fréquentes</h2>
-                  <div className="space-y-4">
-                     <details className="group bg-slate-50 p-6 rounded-xl cursor-pointer">
-                        <summary className="flex justify-between items-center font-bold text-slate-900 list-none">
-                           Mes données sont-elles sécurisées ?
-                           <span className="transition group-open:rotate-180">
-                              <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                           </span>
-                        </summary>
-                        <p className="text-slate-600 mt-4 leading-relaxed text-sm md:text-base">Oui, nous utilisons un chiffrement AES-256 de niveau bancaire. Vos données sont hébergées en France sur des serveurs certifiés HDS (Hébergeur de Données de Santé).</p>
-                     </details>
-                     <details className="group bg-slate-50 p-6 rounded-xl cursor-pointer">
-                        <summary className="flex justify-between items-center font-bold text-slate-900 list-none">
-                           Puis-je changer d'avis ?
-                           <span className="transition group-open:rotate-180">
-                              <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                           </span>
-                        </summary>
-                        <p className="text-slate-600 mt-4 leading-relaxed text-sm md:text-base">Absolument. L'offre est sans engagement. Vous pouvez annuler votre abonnement à tout moment depuis votre espace personnel.</p>
-                     </details>
-                  </div>
-               </div>
-            </section>
+            {/* Trust Badges — Security & compliance */}
+            <TrustBadges />
+
+            {/* Expanded FAQ with categories */}
+            <FAQ />
+
+            {/* Final CTA */}
+            <FinalCta onRegister={onRegister} />
 
          </main>
 
@@ -407,9 +421,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister, o
                      <div>
                         <h4 className="text-white font-bold mb-4 md:mb-6">Produit</h4>
                         <ul className="space-y-3 text-sm">
+                           <li><button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors text-left">Comment ça marche</button></li>
                            <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors text-left">Fonctionnalités</button></li>
+                           <li><button onClick={() => scrollToSection('for-who')} className="hover:text-white transition-colors text-left">Pour qui</button></li>
                            <li><button onClick={() => scrollToSection('pricing')} className="hover:text-white transition-colors text-left">Tarifs</button></li>
-                           <li><button onClick={() => scrollToSection('testimonials')} className="hover:text-white transition-colors text-left">Avis Clients</button></li>
+                           <li><button onClick={() => scrollToSection('faq')} className="hover:text-white transition-colors text-left">FAQ</button></li>
                         </ul>
                      </div>
 
