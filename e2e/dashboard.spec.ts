@@ -1,8 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 // Runs against the demo account created by `npm run db:seed` (see auth.setup.ts)
 test.skip(!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD, 'Définir E2E_EMAIL et E2E_PASSWORD');
 test.describe.configure({ mode: 'serial' });
+
+/** Opens the first invoice of the sidebar list whose row contains `text` */
+async function openInvoice(page: Page, text: string) {
+    const sidebar = page.getByRole('complementary');
+    await sidebar.getByRole('button').filter({ hasText: text }).first().click();
+}
 
 test('les factures du compte de démonstration sont listées', async ({ page }) => {
     await page.goto('/dashboard');
@@ -14,26 +21,45 @@ test('les factures du compte de démonstration sont listées', async ({ page }) 
     await expect(sidebar.getByText('En retard').first()).toBeVisible();
 });
 
-test('ouvrir un brouillon, le modifier et l’enregistrer', async ({ page }) => {
+test('enregistrer un brouillon : les modifications sont bien en base', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.getByRole('complementary').getByRole('button').filter({ hasText: 'Brouillon' }).first().click();
-
+    await openInvoice(page, 'Brouillon');
     await expect(page.getByLabel('Nom complet')).toHaveValue('Jeanne Lefèvre');
-    await page.getByLabel('Notes').fill(`Vérifié par le test e2e du ${new Date().toLocaleDateString('fr-FR')}`);
-    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 
+    const note = `Vérifié par le test e2e — ${Date.now()}`;
+    await page.getByLabel('Notes').fill(note);
+    await page.getByRole('button', { name: 'Ajouter une ligne' }).first().click();
+    await page.getByPlaceholder('Description du soin').last().fill('Ligne ajoutée par le test e2e');
+    await page.getByPlaceholder('0,00').last().fill('4.5');
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(page.getByText(/Facture sauvegardée/)).toBeVisible();
+
+    // After a reload, the editor shows what the database returns (notes and lines are stored encrypted)
+    await page.reload();
+    await openInvoice(page, 'Brouillon');
+    await expect(page.getByLabel('Notes')).toHaveValue(note);
+    await expect(page.getByPlaceholder('Description du soin').last()).toHaveValue('Ligne ajoutée par le test e2e');
+    await expect(page.getByPlaceholder('0,00').last()).toHaveValue('4.5');
+
+    // Put the demo invoice back as seeded
+    await page.getByRole('button', { name: 'Supprimer la ligne Ligne ajoutée par le test e2e' }).click();
+    await page.getByLabel('Notes').fill('');
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(page.getByText(/Facture sauvegardée/)).toBeVisible();
 });
 
-test('télécharger le PDF d’une facture payée', async ({ page }) => {
+test('télécharger le PDF d’une facture payée : un vrai fichier PDF', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.getByRole('complementary').getByRole('button').filter({ hasText: 'Sophie Martin' }).first().click();
+    await openInvoice(page, 'Sophie Martin');
 
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'PDF', exact: true }).click();
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toMatch(/^Facture-FAC-\d{4}-\d+-Sophie_Martin\.pdf$/);
+    const bytes = await readFile(await download.path());
+    expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(bytes.length).toBeGreaterThan(2_000);
 });
 
 test('la limite de l’offre gratuite propose de passer Pro', async ({ page }) => {

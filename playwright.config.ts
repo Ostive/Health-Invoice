@@ -30,7 +30,7 @@ export default defineConfig({
         },
         {
             name: 'dashboard',
-            testMatch: /dashboard\.spec\.ts/,
+            testMatch: /(dashboard|ai)\.spec\.ts/,
             dependencies: ['setup'],
             use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
         },

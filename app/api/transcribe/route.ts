@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenAI } from "@google/genai"
+import { GEMINI_MODEL } from "@/lib/gemini"
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { handleApiError, unauthorized, badRequest, tooManyRequests, ApiError } from '@/lib/api-errors'
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
         const mimeType = audioFile.type || 'audio/webm'
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: GEMINI_MODEL,
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64Audio } },

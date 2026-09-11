@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenAI, Type } from "@google/genai"
+import { GEMINI_MODEL } from "@/lib/gemini"
 import { GeneratedInvoiceData } from "@/types/index"
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       Texte: "${text}"`
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: GEMINI_MODEL,
             contents: [{ parts: [{ text: prompt }] }],
             config: {
                 responseMimeType: "application/json",

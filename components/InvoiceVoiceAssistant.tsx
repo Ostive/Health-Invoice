@@ -45,8 +45,13 @@ export const InvoiceVoiceAssistant: React.FC<InvoiceVoiceAssistantProps> = ({ in
             const data = await response.json();
             const updatedInvoice = { ...invoice };
 
-            if (data.client) {
-                updatedInvoice.client = { ...updatedInvoice.client, ...data.client };
+            // The API answers with clientName / clientAddress: only fill patient fields that are still empty
+            const { clientName, clientAddress } = data as { clientName?: string; clientAddress?: string };
+            if (clientName && !updatedInvoice.client.name?.trim()) {
+                updatedInvoice.client = { ...updatedInvoice.client, name: clientName };
+            }
+            if (clientAddress && !updatedInvoice.client.address?.trim()) {
+                updatedInvoice.client = { ...updatedInvoice.client, address: clientAddress };
             }
 
             if (data.items && Array.isArray(data.items)) {
