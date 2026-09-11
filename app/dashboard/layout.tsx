@@ -1,7 +1,10 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { Merriweather, Playfair_Display, Lato } from 'next/font/google'
-import { getUser } from '@/lib/supabase/server'
+import { getSession } from '@/lib/dal/session'
+import { loadDashboardData } from '@/lib/dal/dashboard'
 import { DashboardLayoutClient } from '@/components/dashboard/DashboardLayoutClient'
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
 
 // Typefaces used by the invoice templates in the live preview only
 const merriweather = Merriweather({
@@ -31,18 +34,20 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    // Use getUser() for security - it validates the session with Supabase
-    const { user } = await getUser()
+    // proxy.ts already sends anonymous visitors to /connexion; the layout doesn't rely on it
+    const session = await getSession()
+    if (!session) redirect('/connexion')
 
-    if (!user) {
-        redirect('/connexion')
-    }
+    // Not awaited: the shell streams right away and the client provider waits for the data
+    const data = loadDashboardData(session)
 
     return (
         <div className={`${merriweather.variable} ${playfair.variable} ${lato.variable} contents`}>
-            <DashboardLayoutClient initialUser={user}>
-                {children}
-            </DashboardLayoutClient>
+            <Suspense fallback={<DashboardSkeleton />}>
+                <DashboardLayoutClient user={{ id: session.user.id, email: session.user.email ?? '' }} data={data}>
+                    {children}
+                </DashboardLayoutClient>
+            </Suspense>
         </div>
     )
 }

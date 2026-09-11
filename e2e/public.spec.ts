@@ -43,6 +43,16 @@ test.describe('Site public', () => {
         await expect(page).toHaveURL(/\/connexion$/);
     });
 
+    test('les routes API refusent un visiteur non connecté', async ({ request }) => {
+        for (const url of ['/api/invoices', '/api/folders', '/api/patients', '/api/profile']) {
+            expect((await request.get(url)).status(), url).toBe(401);
+        }
+        const save = await request.post('/api/invoices', { data: { invoice: {} } });
+        expect(save.status()).toBe(401);
+        const pdf = await request.post('/api/generate-pdf', { data: { invoiceId: '00000000-0000-4000-8000-000000000000' } });
+        expect(pdf.status()).toBe(401);
+    });
+
     test('les anciennes adresses des paramètres sont redirigées', async ({ request }) => {
         const response = await request.get('/dashboard/subscription', { maxRedirects: 0 });
         expect(response.status()).toBe(308);

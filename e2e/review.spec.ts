@@ -107,7 +107,7 @@ test.describe('Tableau de bord', () => {
     ] as const;
 
     async function openInvoice(page: Page, status: string) {
-        await page.getByRole('complementary').getByRole('button').filter({ hasText: status }).first().click();
+        await page.getByRole('complementary').getByRole('link').filter({ hasText: status }).first().click();
         await page.waitForTimeout(500);
     }
 
@@ -200,7 +200,7 @@ test.describe('Tableau de bord', () => {
         await expect(drawer.getByText('Jeanne Lefèvre').first()).toBeVisible();
         await shot(page, 'mobile-menu-dashboard');
 
-        await drawer.getByRole('button').filter({ hasText: 'Brouillon' }).first().click();
+        await drawer.getByRole('link').filter({ hasText: 'Brouillon' }).first().click();
         await page.waitForTimeout(500);
         await shot(page, 'mobile-editeur');
         await page.getByRole('button', { name: 'Aperçu' }).click();

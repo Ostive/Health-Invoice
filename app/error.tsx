@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { buttonClass } from '@/components/ui/button-styles'
 import { Stamp } from '@/components/ui/stamp'
 
 export default function Error({
@@ -26,9 +28,9 @@ export default function Error({
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button onClick={() => reset()} size="lg">Réessayer</Button>
-                <Button onClick={() => { window.location.href = '/dashboard' }} variant="outline" size="lg">
+                <Link href="/dashboard" className={buttonClass({ variant: 'outline', size: 'lg' })}>
                     Aller au tableau de bord
-                </Button>
+                </Link>
             </div>
 
             {process.env.NODE_ENV === 'development' && (

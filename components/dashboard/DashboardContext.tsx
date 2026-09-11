@@ -1,40 +1,34 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { User } from '@supabase/supabase-js';
-import { Invoice, InvoiceStatus, UserProfile, Folder } from '../../types/index';
-import { InvoiceService } from '../../services/invoiceService';
-import { PatientService } from '../../services/patientService';
-import { subscribeToPro, PLAN_LIMITS, PLAN_LIMITS_ENFORCED } from '../../services/stripeService';
-import { ToastType } from '../ui/toast';
-import { PatientInput } from '../../lib/schemas';
+import React, { createContext, use, useCallback, useContext, useMemo, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import type { DashboardData, Folder, Invoice, SessionUser, UserProfile } from '@/types';
+import type { PatientInput } from '@/lib/schemas';
+import type { ToastType } from '@/components/ui/toast';
+import { InvoiceService } from '@/services/invoiceService';
+import { PatientService } from '@/services/patientService';
+import { ProfileService } from '@/services/profileService';
+import { subscribeToPro } from '@/services/stripeService';
+import { errorMessage } from '@/lib/errors';
 
-import { generateUUID } from '../../lib/uuid';
+type Toast = { message: string; type: ToastType } | null;
+type DateRange = { start: string; end: string };
 
+/** The dashboard's data (read on the server by the layout) and everything around it; editing lives in InvoiceEditorContext */
 interface DashboardContextType {
-    user: User | null;
-    profile: UserProfile | null;
+    user: SessionUser;
+    profile: UserProfile;
     invoices: Invoice[];
+    setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
     folders: Folder[];
     patients: PatientInput[];
-    currentInvoice: Invoice | null;
-    setCurrentInvoice: (invoice: Invoice | null) => void;
-
-    // UI State
     isLoadingList: boolean;
-    isBusy: boolean;
-    isSaving: boolean;
-    isExporting: boolean;
-    setIsExporting: (isExporting: boolean) => void;
-    isDeletingInvoice: boolean;
-    isDeletingFolder: boolean;
-    isSavingFolder: boolean;
     fetchError: string | null;
+    refreshInvoices: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
+    refreshPatients: () => Promise<void>;
 
-    // Selection & Filters
-    selectedInvoiceIds: Set<string>;
-    selectedFolderIds: Set<string>;
+    // Sidebar filters
     selectedFolderId: string | null;
     setSelectedFolderId: (id: string | null) => void;
     searchQuery: string;
@@ -43,448 +37,194 @@ interface DashboardContextType {
     setFolderSearchQuery: (q: string) => void;
     showDateFilter: boolean;
     setShowDateFilter: (show: boolean) => void;
-    dateRange: { start: string; end: string };
-    setDateRange: (range: { start: string; end: string }) => void;
+    dateRange: DateRange;
+    setDateRange: (range: DateRange) => void;
     displayedInvoices: Invoice[];
-    activeTab: 'editor' | 'preview';
-    setActiveTab: (tab: 'editor' | 'preview') => void;
 
-    // Modals
-    showUpgradeModal: boolean;
-    setShowUpgradeModal: (show: boolean) => void;
-    invoiceToDelete: string | null;
-    setInvoiceToDelete: (id: string | null) => void;
-    folderToDelete: Folder | null;
-    setFolderToDelete: (folder: Folder | null) => void;
+    // Multi-selection and bulk deletion
+    selectedInvoiceIds: Set<string>;
+    selectedFolderIds: Set<string>;
+    toggleInvoiceSelection: (id: string) => void;
+    toggleFolderSelection: (id: string) => void;
+    toggleSelectAllInvoices: () => void;
+    showBulkDeleteModal: boolean;
+    setShowBulkDeleteModal: (show: boolean) => void;
+    bulkDeleteType: 'invoices' | 'folders';
+    handleBulkDeleteInvoices: () => void;
+    handleBulkDeleteFolders: () => void;
+    confirmBulkDelete: () => Promise<void>;
+    isBulkDeleting: boolean;
+
+    // Folders
     showCreateFolderModal: boolean;
     setShowCreateFolderModal: (show: boolean) => void;
     folderToEdit: Folder | null;
     setFolderToEdit: (folder: Folder | null) => void;
-    showOnboarding: boolean;
-    setShowOnboarding: (show: boolean) => void;
-
-    // Bulk Delete Modal Props
-    showBulkDeleteModal: boolean;
-    setShowBulkDeleteModal: (show: boolean) => void;
-    bulkDeleteType: 'invoices' | 'folders';
-    confirmBulkDelete: () => Promise<void>;
-
-    // Actions
-    refreshProfile: () => Promise<void>;
-    refreshPatients: () => Promise<void>;
-    handleNewInvoice: () => void;
-    handleInvoiceSelect: (inv: Invoice) => void;
-    handleSaveInvoice: () => Promise<boolean>;
-    handleDeleteInvoice: () => Promise<void>;
-    handleBulkDeleteInvoices: () => Promise<void>;
-    handleBulkDeleteFolders: () => Promise<void>;
     handleCreateFolderClick: () => void;
     handleEditFolder: (folder: Folder, e: React.MouseEvent) => void;
-    handleDeleteFolderClick: (folder: Folder, e: React.MouseEvent) => void;
     confirmFolderAction: (name: string, color: string) => Promise<void>;
+    isSavingFolder: boolean;
+    folderToDelete: Folder | null;
+    setFolderToDelete: (folder: Folder | null) => void;
+    handleDeleteFolderClick: (folder: Folder, e: React.MouseEvent) => void;
     confirmDeleteFolder: () => Promise<void>;
-    promptDeleteInvoice: (id: string, e: React.MouseEvent) => void;
-    toggleInvoiceSelection: (id: string) => void;
-    toggleFolderSelection: (id: string) => void;
-    toggleSelectAllInvoices: () => void;
+    isDeletingFolder: boolean;
+
+    // Account
+    showUpgradeModal: boolean;
+    setShowUpgradeModal: (show: boolean) => void;
     handleStartUpgrade: () => void;
+    showOnboarding: boolean;
+    setShowOnboarding: (show: boolean) => void;
     onLogout: () => Promise<void>;
 
-    // Toast
-    toast: { message: string; type: ToastType } | null;
-    setToast: (toast: { message: string; type: ToastType } | null) => void;
+    toast: Toast;
+    setToast: (toast: Toast) => void;
 
-    // State
-    hasUnsavedChanges: boolean;
+    /** A folder or bulk operation is running */
+    isMutating: boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
-export function DashboardProvider({
-    children,
-    initialUser
-}: {
+export function DashboardProvider({ children, user, data }: {
     children: React.ReactNode;
-    initialUser: User
+    user: SessionUser;
+    data: Promise<DashboardData>;
 }) {
+    // Started by the server layout; suspends (skeleton shown) until the data has streamed in
+    const initial = use(data);
     const router = useRouter();
-    const pathname = usePathname();
-    const [user, setUser] = useState<User>(initialUser);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const params = useParams<{ id?: string }>();
 
-    // Data State
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [folders, setFolders] = useState<Folder[]>([]);
-    const [patients, setPatients] = useState<PatientInput[]>([]);
-    const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
+    const [profile, setProfile] = useState(initial.profile);
+    const [invoices, setInvoices] = useState(initial.invoices);
+    const [folders, setFolders] = useState(initial.folders);
+    const [patients, setPatients] = useState(initial.patients);
+    const [fetchError, setFetchError] = useState(initial.invoicesError);
+    const [isLoadingList, setIsLoadingList] = useState(false);
 
-    // UI State
-    const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
-    const [isLoadingList, setIsLoadingList] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isExporting, setIsExporting] = useState(false);
-    const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
-    const [isSavingFolder, setIsSavingFolder] = useState(false);
-    const [isDeletingFolder, setIsDeletingFolder] = useState(false);
-    const [fetchError, setFetchError] = useState<string | null>(null);
-
-    // Filters & Selection
-    const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(new Set());
-    const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [folderSearchQuery, setFolderSearchQuery] = useState('');
     const [showDateFilter, setShowDateFilter] = useState(false);
-    const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+    const [dateRange, setDateRange] = useState<DateRange>({ start: '', end: '' });
 
-    // Computed: Check for unsaved changes
-    const hasUnsavedChanges = React.useMemo(() => {
-        if (!currentInvoice) return false;
-        const saved = invoices.find(i => i.id === currentInvoice.id);
-        if (!saved) return true; // New invoice not in list
-        return JSON.stringify(currentInvoice) !== JSON.stringify(saved);
-    }, [currentInvoice, invoices]);
+    const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(new Set());
+    const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleteType, setBulkDeleteType] = useState<'invoices' | 'folders'>('invoices');
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-    // Modals
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
     const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
     const [folderToEdit, setFolderToEdit] = useState<Folder | null>(null);
     const [folderToDelete, setFolderToDelete] = useState<Folder | null>(null);
-    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [isSavingFolder, setIsSavingFolder] = useState(false);
+    const [isDeletingFolder, setIsDeletingFolder] = useState(false);
 
-    // Bulk Delete Modal State
-    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-    const [bulkDeleteType, setBulkDeleteType] = useState<'invoices' | 'folders'>('invoices');
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(!initial.profile.full_name);
+    const [toast, setToast] = useState<Toast>(null);
 
-    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-
-    // Fetch Profile
-    const fetchProfile = useCallback(async () => {
-        try {
-            const response = await fetch('/api/profile');
-            const data = await response.json();
-
-            const defaults = {
-                full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-                email: user.email || ''
-            };
-
-            if (!data || data.error) {
-                setProfile({
-                    id: user.id,
-                    email: defaults.email,
-                    full_name: defaults.full_name,
-                    is_pro: false
-                });
-                return;
-            }
-
-            if (data) {
-                setProfile({
-                    ...data,
-                    full_name: data.full_name || defaults.full_name,
-                    email: data.email || defaults.email
-                } as UserProfile);
-            }
-        } catch (err) {
-            console.warn("Error fetching profile:", err);
-        }
-    }, [user]);
-
-    // Fetch Invoices & Folders
-    const fetchInvoices = useCallback(async () => {
-        if (!user?.id) return;
+    // Refetches through the Route Handlers, after a failed mutation or a change made elsewhere
+    const refreshInvoices = useCallback(async () => {
         setIsLoadingList(true);
         setFetchError(null);
         try {
-            const data = await InvoiceService.fetchAll(user.id);
-            setInvoices(data);
-        } catch (err: any) {
-            setFetchError(err.message);
+            setInvoices(await InvoiceService.fetchAll());
+        } catch (err) {
+            setFetchError(`Vos factures n’ont pas pu être chargées : ${errorMessage(err)}`);
         } finally {
             setIsLoadingList(false);
         }
-    }, [user]);
+    }, []);
 
-    const fetchFolders = useCallback(async () => {
-        if (!user?.id) return;
+    const refreshFolders = useCallback(async () => {
         try {
-            const data = await InvoiceService.fetchFolders(user.id);
-            setFolders(data);
+            setFolders(await InvoiceService.fetchFolders());
         } catch (err) {
-            console.warn("Error fetching folders:", err);
+            console.warn('Error fetching folders:', err);
         }
-    }, [user]);
+    }, []);
 
-    const fetchPatients = useCallback(async () => {
-        if (!user?.id) return;
+    const refreshPatients = useCallback(async () => {
         try {
-            const data = await PatientService.fetchAll();
-            setPatients(data);
+            setPatients(await PatientService.fetchAll());
         } catch (err) {
-            console.warn("Error fetching patients:", err);
+            console.warn('Error fetching patients:', err);
         }
-    }, [user]);
+    }, []);
 
-    useEffect(() => {
-        if (user?.id) {
-            fetchProfile();
-            fetchInvoices();
-            fetchFolders();
-            fetchPatients();
+    const refreshProfile = useCallback(async () => {
+        try {
+            setProfile(await ProfileService.fetch());
+        } catch (err) {
+            console.warn('Error fetching profile:', err);
         }
-    }, [user, fetchProfile, fetchInvoices, fetchFolders, fetchPatients]);
+    }, []);
 
-    useEffect(() => {
-        if (profile && !profile.full_name) {
-            setShowOnboarding(true);
-        }
-    }, [profile]);
-
-    // Computed
-    const displayedInvoices = invoices.filter(i => {
+    const displayedInvoices = useMemo(() => invoices.filter(i => {
         if (selectedFolderId && i.folderId !== selectedFolderId) return false;
         if (dateRange.start && i.date < dateRange.start) return false;
         if (dateRange.end && i.date > dateRange.end) return false;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            const matchName = i.client.name.toLowerCase().includes(q);
-            const matchNumber = i.number.toLowerCase().includes(q);
-            return matchName || matchNumber;
+            return i.client.name.toLowerCase().includes(q) || i.number.toLowerCase().includes(q);
         }
         return true;
-    });
-    const isBusy = isSaving || isDeletingInvoice || isExporting || isSavingFolder || isDeletingFolder;
+    }), [invoices, selectedFolderId, dateRange, searchQuery]);
 
-    // Actions
-    const createEmptyInvoice = (): Invoice => {
-        return {
-            id: generateUUID(),
-            number: '',
-            date: new Date().toISOString().split('T')[0],
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            client: { name: '', address: '', email: '', ssn: '' },
-            items: [{ id: generateUUID(), description: 'Consultation', quantity: 1, unitPrice: 25.00 }],
-            status: InvoiceStatus.DRAFT,
-            template: 'modern',
-            notes: '',
-            folderId: selectedFolderId || null
-        };
+    const toggleIn = (set: Set<string>, id: string) => {
+        const next = new Set(set);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+    };
+    const toggleInvoiceSelection = (id: string) => setSelectedInvoiceIds(prev => toggleIn(prev, id));
+    const toggleFolderSelection = (id: string) => setSelectedFolderIds(prev => toggleIn(prev, id));
+    const toggleSelectAllInvoices = () => {
+        setSelectedInvoiceIds(selectedInvoiceIds.size === displayedInvoices.length ? new Set() : new Set(displayedInvoices.map(i => i.id)));
     };
 
-    // The invoice editor lives on /dashboard: opening an invoice from another section navigates there
-    const openInvoicesPage = () => {
-        if (pathname !== '/dashboard') router.push('/dashboard');
-    };
-
-    const handleNewInvoice = () => {
-        // Wait for the invoice list: the free-plan quota below is computed from it
-        if (isBusy || isLoadingList) return;
-        if (PLAN_LIMITS_ENFORCED && !profile?.is_pro && invoices.length >= PLAN_LIMITS.free.maxInvoices) {
-            setShowUpgradeModal(true);
-            return;
-        }
-        const newInv = createEmptyInvoice();
-        setCurrentInvoice(newInv);
-        setActiveTab('editor');
-        openInvoicesPage();
-    };
-
-    const handleInvoiceSelect = (inv: Invoice) => {
-        if (isBusy) return;
-        setCurrentInvoice(inv);
-        localStorage.setItem('lastOpenedInvoiceId', inv.id);
-        setActiveTab('editor');
-        openInvoicesPage();
-    };
-
-    const handleSaveInvoice = async (): Promise<boolean> => {
-        if (!currentInvoice || !user?.id) return false;
-
-        // Auto-fix missing due date to prevent validation error
-        const invoiceToSave = { ...currentInvoice };
-        if (!invoiceToSave.dueDate) {
-            // Default to invoice date (due immediately) if not set
-            invoiceToSave.dueDate = invoiceToSave.date;
-        }
-
-        setIsSaving(true);
-        try {
-            const savedInvoice = await InvoiceService.save(invoiceToSave, user.id);
-            setInvoices(prev => {
-                const exists = prev.find(i => i.id === savedInvoice.id);
-                return exists
-                    ? prev.map(i => i.id === savedInvoice.id ? savedInvoice : i)
-                    : [savedInvoice, ...prev];
-            });
-            setCurrentInvoice(savedInvoice);
-            setToast({ message: `Facture sauvegardée: ${savedInvoice.number}`, type: 'success' });
-            return true;
-        } catch (error: any) {
-            let message = error.message;
-
-            // User-friendly Error Mapping
-            if (message.includes('Client name is required') || message.includes('Le nom du client est requis')) {
-                message = 'Le nom du client est obligatoire.';
-            } else if (message.includes('Invoice date is required')) {
-                message = 'La date de la facture est obligatoire.';
-            } else if (message.includes('At least one item is required') || message.includes('Au moins une prestation est requise')) {
-                message = 'Au moins une prestation est requise.';
-            } else if (message.includes('Validation failed')) {
-                // Strip the prefix
-                const validMsg = message.replace('Validation failed:', '').trim();
-
-                // Handle generic Zod "Required" errors (often "Invalid input: expected string, received undefined")
-                if (validMsg.includes('expected string, received undefined')) {
-                    // Try to be more specific based on common missing fields if we can, otherwise generic
-                    message = "Erreur de validation : Un champ obligatoire (text) est manquant (ex: Nom du client, Date, Description).";
-                } else {
-                    message = `Erreur de validation : ${validMsg}`;
-                }
-            }
-
-            setToast({ message: `Erreur de sauvegarde: ${message}`, type: 'error' });
-            return false;
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleDeleteInvoice = async () => {
-        if (!invoiceToDelete) return;
-        setIsDeletingInvoice(true);
-        try {
-            await InvoiceService.delete(invoiceToDelete);
-            const remaining = invoices.filter(i => i.id !== invoiceToDelete);
-            setInvoices(remaining);
-            if (currentInvoice?.id === invoiceToDelete) {
-                setCurrentInvoice(remaining.length > 0 ? remaining[0] : createEmptyInvoice());
-            }
-            setInvoiceToDelete(null);
-        } catch (err: any) {
-            setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-            fetchInvoices();
-        } finally {
-            setIsDeletingInvoice(false);
-        }
-    };
-
-    const handleBulkDeleteInvoices = async () => {
+    const handleBulkDeleteInvoices = () => {
         if (selectedInvoiceIds.size === 0) return;
         setBulkDeleteType('invoices');
         setShowBulkDeleteModal(true);
     };
 
-    const handleBulkDeleteFolders = async () => {
+    const handleBulkDeleteFolders = () => {
         if (selectedFolderIds.size === 0) return;
         setBulkDeleteType('folders');
         setShowBulkDeleteModal(true);
     };
 
     const confirmBulkDelete = async () => {
-        if (bulkDeleteType === 'invoices') {
-            setIsDeletingInvoice(true);
-            try {
-                await InvoiceService.deleteMultiple(Array.from(selectedInvoiceIds));
-                const remaining = invoices.filter(i => !selectedInvoiceIds.has(i.id));
-                setInvoices(remaining);
-                if (currentInvoice && selectedInvoiceIds.has(currentInvoice.id)) {
-                    setCurrentInvoice(remaining.length > 0 ? remaining[0] : createEmptyInvoice());
-                }
+        setIsBulkDeleting(true);
+        try {
+            if (bulkDeleteType === 'invoices') {
+                const ids = selectedInvoiceIds;
+                await InvoiceService.deleteMultiple([...ids]);
+                setInvoices(prev => prev.filter(i => !ids.has(i.id)));
+                // The open invoice was among them: its URL no longer points to anything
+                if (params.id && ids.has(params.id)) router.replace('/dashboard');
                 setSelectedInvoiceIds(new Set());
-                setToast({ message: `${selectedInvoiceIds.size} factures supprimées`, type: 'success' });
-            } catch (err: any) {
-                setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-                fetchInvoices();
-            } finally {
-                setIsDeletingInvoice(false);
-                setShowBulkDeleteModal(false);
-            }
-        } else {
-            setIsDeletingFolder(true);
-            try {
-                await InvoiceService.deleteMultipleFolders(Array.from(selectedFolderIds));
-                setFolders(prev => prev.filter(f => !selectedFolderIds.has(f.id)));
-                if (selectedFolderId && selectedFolderIds.has(selectedFolderId)) {
-                    setSelectedFolderId(null);
-                }
-                setSelectedFolderIds(new Set());
-                setToast({ message: `${selectedFolderIds.size} dossiers supprimés`, type: 'success' });
-            } catch (err: any) {
-                setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-                fetchFolders();
-            } finally {
-                setIsDeletingFolder(false);
-                setShowBulkDeleteModal(false);
-            }
-        }
-    };
-
-    const confirmFolderAction = async (name: string, color: string) => {
-        if (!user?.id) return;
-        setIsSavingFolder(true);
-        try {
-            if (folderToEdit) {
-                const updated = await InvoiceService.updateFolder(folderToEdit.id, name, color);
-                setFolders(prev => prev.map(f => f.id === updated.id ? updated : f));
-                setToast({ message: 'Dossier modifié', type: 'success' });
+                setToast({ message: `${ids.size} factures supprimées`, type: 'success' });
             } else {
-                const created = await InvoiceService.createFolder(user.id, name, color);
-                setFolders(prev => [...prev, created]);
-                setToast({ message: 'Dossier créé', type: 'success' });
+                const ids = selectedFolderIds;
+                await InvoiceService.deleteMultipleFolders([...ids]);
+                setFolders(prev => prev.filter(f => !ids.has(f.id)));
+                if (selectedFolderId && ids.has(selectedFolderId)) setSelectedFolderId(null);
+                setSelectedFolderIds(new Set());
+                setToast({ message: `${ids.size} dossiers supprimés`, type: 'success' });
             }
-            setShowCreateFolderModal(false);
-            setFolderToEdit(null);
-        } catch (err: any) {
-            setToast({ message: `Erreur: ${err.message}`, type: 'error' });
+        } catch (err) {
+            setToast({ message: `Erreur : ${errorMessage(err)}`, type: 'error' });
+            if (bulkDeleteType === 'invoices') refreshInvoices();
+            else refreshFolders();
         } finally {
-            setIsSavingFolder(false);
+            setIsBulkDeleting(false);
+            setShowBulkDeleteModal(false);
         }
-    };
-
-    const confirmDeleteFolder = async () => {
-        if (!folderToDelete) return;
-        setIsDeletingFolder(true);
-        try {
-            await InvoiceService.deleteFolder(folderToDelete.id);
-            setFolders(prev => prev.filter(f => f.id !== folderToDelete.id));
-            if (selectedFolderId === folderToDelete.id) setSelectedFolderId(null);
-            setToast({ message: 'Dossier supprimé', type: 'success' });
-            setFolderToDelete(null);
-        } catch (err: any) {
-            setToast({ message: `Erreur: ${err.message}`, type: 'error' });
-        } finally {
-            setIsDeletingFolder(false);
-        }
-    };
-
-    const toggleInvoiceSelection = (id: string) => {
-        const newSelection = new Set(selectedInvoiceIds);
-        if (newSelection.has(id)) newSelection.delete(id);
-        else newSelection.add(id);
-        setSelectedInvoiceIds(newSelection);
-    };
-
-    const toggleFolderSelection = (id: string) => {
-        const newSelection = new Set(selectedFolderIds);
-        if (newSelection.has(id)) newSelection.delete(id);
-        else newSelection.add(id);
-        setSelectedFolderIds(newSelection);
-    };
-
-    const toggleSelectAllInvoices = () => {
-        if (selectedInvoiceIds.size === displayedInvoices.length) {
-            setSelectedInvoiceIds(new Set());
-        } else {
-            setSelectedInvoiceIds(new Set(displayedInvoices.map(i => i.id)));
-        }
-    };
-
-    const promptDeleteInvoice = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (isBusy) return;
-        setInvoiceToDelete(id);
     };
 
     const handleCreateFolderClick = () => {
@@ -498,52 +238,83 @@ export function DashboardProvider({
         setShowCreateFolderModal(true);
     };
 
+    const confirmFolderAction = async (name: string, color: string) => {
+        setIsSavingFolder(true);
+        try {
+            if (folderToEdit) {
+                const updated = await InvoiceService.updateFolder(folderToEdit.id, name, color);
+                setFolders(prev => prev.map(f => f.id === updated.id ? updated : f));
+                setToast({ message: 'Dossier modifié', type: 'success' });
+            } else {
+                const created = await InvoiceService.createFolder(name, color);
+                setFolders(prev => [...prev, created]);
+                setToast({ message: 'Dossier créé', type: 'success' });
+            }
+            setShowCreateFolderModal(false);
+            setFolderToEdit(null);
+        } catch (err) {
+            setToast({ message: `Erreur : ${errorMessage(err)}`, type: 'error' });
+        } finally {
+            setIsSavingFolder(false);
+        }
+    };
+
     const handleDeleteFolderClick = (folder: Folder, e: React.MouseEvent) => {
         e.stopPropagation();
         setFolderToDelete(folder);
     };
 
+    const confirmDeleteFolder = async () => {
+        if (!folderToDelete) return;
+        setIsDeletingFolder(true);
+        try {
+            await InvoiceService.deleteFolder(folderToDelete.id);
+            setFolders(prev => prev.filter(f => f.id !== folderToDelete.id));
+            if (selectedFolderId === folderToDelete.id) setSelectedFolderId(null);
+            setToast({ message: 'Dossier supprimé', type: 'success' });
+            setFolderToDelete(null);
+        } catch (err) {
+            setToast({ message: `Erreur : ${errorMessage(err)}`, type: 'error' });
+        } finally {
+            setIsDeletingFolder(false);
+        }
+    };
+
     const handleStartUpgrade = () => {
         setShowUpgradeModal(false);
-        if (user) subscribeToPro(user.id, user.email);
+        subscribeToPro(user.id, user.email);
     };
 
     const onLogout = async () => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') && key.includes('-auth-token')) {
-                    localStorage.removeItem(key);
-                }
-            });
-            sessionStorage.clear();
-            window.location.href = '/';
         } catch (err) {
-            console.error("Logout failed:", err);
-            window.location.href = '/';
+            console.error('Logout failed:', err);
         }
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') && key.includes('-auth-token')) localStorage.removeItem(key);
+        });
+        sessionStorage.clear();
+        // Full page load on purpose: nothing of the patients' data stays in memory
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = '/';
     };
 
     return (
         <DashboardContext.Provider value={{
-            user, profile, invoices, folders, patients, currentInvoice, setCurrentInvoice,
-            isLoadingList, isBusy, isSaving, isExporting, setIsExporting, isDeletingInvoice, isDeletingFolder, isSavingFolder, fetchError,
-            selectedInvoiceIds, selectedFolderIds, selectedFolderId, setSelectedFolderId,
-            searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
+            user, profile, invoices, setInvoices, folders, patients, isLoadingList, fetchError,
+            refreshInvoices, refreshProfile, refreshPatients,
+            selectedFolderId, setSelectedFolderId, searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
             showDateFilter, setShowDateFilter, dateRange, setDateRange, displayedInvoices,
-            activeTab, setActiveTab,
-            showUpgradeModal, setShowUpgradeModal, invoiceToDelete, setInvoiceToDelete,
-            folderToDelete, setFolderToDelete, showCreateFolderModal, setShowCreateFolderModal,
-            folderToEdit, setFolderToEdit, showOnboarding, setShowOnboarding,
-            // Bulk Delete Props
-            showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
-            refreshProfile: fetchProfile, refreshPatients: fetchPatients,
-            handleNewInvoice, handleInvoiceSelect, handleSaveInvoice, handleDeleteInvoice,
-            handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
-            handleEditFolder, handleDeleteFolderClick, confirmFolderAction, confirmDeleteFolder,
-            promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
-            handleStartUpgrade, onLogout, toast, setToast,
-            hasUnsavedChanges
+            selectedInvoiceIds, selectedFolderIds, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
+            showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, handleBulkDeleteInvoices, handleBulkDeleteFolders,
+            confirmBulkDelete, isBulkDeleting,
+            showCreateFolderModal, setShowCreateFolderModal, folderToEdit, setFolderToEdit, handleCreateFolderClick,
+            handleEditFolder, confirmFolderAction, isSavingFolder,
+            folderToDelete, setFolderToDelete, handleDeleteFolderClick, confirmDeleteFolder, isDeletingFolder,
+            showUpgradeModal, setShowUpgradeModal, handleStartUpgrade, showOnboarding, setShowOnboarding, onLogout,
+            toast, setToast,
+            isMutating: isSavingFolder || isDeletingFolder || isBulkDeleting,
         }}>
             {children}
         </DashboardContext.Provider>

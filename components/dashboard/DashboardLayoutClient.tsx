@@ -2,28 +2,28 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { User } from '@supabase/supabase-js';
+import type { DashboardData, SessionUser } from '@/types';
 import { DashboardProvider, useDashboard } from './DashboardContext';
+import { InvoiceEditorProvider, useInvoiceEditor } from './InvoiceEditorContext';
 import { Sidebar } from './Sidebar';
-import { OnboardingModal } from '../OnboardingModal';
-import { Toast } from '../ui/toast';
+import { OnboardingModal } from '@/components/OnboardingModal';
+import { Toast } from '@/components/ui/toast';
 import { DeleteConfirmationModal } from './modals/DeleteConfirmationModal';
 import { FolderModal } from './modals/FolderModal';
 import { DeleteFolderConfirmationModal } from './modals/DeleteFolderConfirmationModal';
 import { BulkDeleteConfirmationModal } from './modals/BulkDeleteConfirmationModal';
-import { Button } from '../ui/button';
-import { Modal } from '../ui/modal';
-import { Logo } from '../ui/logo';
-import { Stamp } from '../ui/stamp';
-import { Icon } from '../ui/icon';
-import { PLAN_LIMITS } from '../../services/stripeService';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Logo } from '@/components/ui/logo';
+import { Stamp } from '@/components/ui/stamp';
+import { Icon } from '@/components/ui/icon';
+import { PLAN_LIMITS } from '@/services/stripeService';
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     const {
         profile,
         selectedFolderIds, selectedInvoiceIds,
-        isDeletingInvoice, isDeletingFolder, isSavingFolder,
-        invoiceToDelete, setInvoiceToDelete, handleDeleteInvoice,
+        isDeletingFolder, isSavingFolder, isBulkDeleting,
         folderToDelete, setFolderToDelete, confirmDeleteFolder,
         showCreateFolderModal, setShowCreateFolderModal, folderToEdit, setFolderToEdit, confirmFolderAction,
         showUpgradeModal, setShowUpgradeModal, handleStartUpgrade,
@@ -32,6 +32,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
         onLogout,
     } = useDashboard();
+    const { invoiceToDelete, setInvoiceToDelete, handleDeleteInvoice, isDeletingInvoice } = useInvoiceEditor();
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
@@ -54,7 +55,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 isOpen={showBulkDeleteModal}
                 onClose={() => setShowBulkDeleteModal(false)}
                 onConfirm={confirmBulkDelete}
-                isLoading={bulkDeleteType === 'invoices' ? isDeletingInvoice : isDeletingFolder}
+                isLoading={isBulkDeleting}
                 count={bulkDeleteType === 'invoices' ? selectedInvoiceIds.size : selectedFolderIds.size}
                 type={bulkDeleteType}
             />
@@ -92,7 +93,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                         <div className="space-y-1 border-t border-rule p-3">
                             <Link href="/dashboard/parametres" onClick={() => setIsMobileSidebarOpen(false)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-paper">
                                 <Icon name="settings" className="text-ink-faint" />Paramètres
-                                {profile?.is_pro && <Stamp tone="ink" className="ml-auto">Pro</Stamp>}
+                                {profile.is_pro && <Stamp tone="ink" className="ml-auto">Pro</Stamp>}
                             </Link>
                             <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-700 transition-colors hover:bg-red-50">
                                 <Icon name="logout" />Se déconnecter
@@ -134,10 +135,17 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function DashboardLayoutClient({ children, initialUser }: { children: React.ReactNode, initialUser: User }) {
+/** Client part of the dashboard layout: providers (data read on the server, invoice editing) and the app shell */
+export function DashboardLayoutClient({ children, user, data }: {
+    children: React.ReactNode;
+    user: SessionUser;
+    data: Promise<DashboardData>;
+}) {
     return (
-        <DashboardProvider initialUser={initialUser}>
-            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+        <DashboardProvider user={user} data={data}>
+            <InvoiceEditorProvider>
+                <DashboardLayoutInner>{children}</DashboardLayoutInner>
+            </InvoiceEditorProvider>
         </DashboardProvider>
     );
 }

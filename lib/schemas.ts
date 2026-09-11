@@ -109,6 +109,8 @@ export const LoginSchema = z.object({
     password: z.string().min(1, "Le mot de passe est requis"),
 });
 
+export const IdSchema = z.uuid("Identifiant invalide");
+
 export const BatchIdsSchema = z.object({
     ids: z.array(z.uuid("Identifiant invalide")).min(1, "Au moins un identifiant est requis"),
 });

@@ -1,99 +1,26 @@
+import type { Invoice, Folder } from '@/types';
+import { api } from './api';
+import { mapInvoiceToPayload } from './invoiceMapper';
 
-import { Invoice, Folder } from '../types/index';
-import { mapDbRowToInvoice, mapInvoiceToPayload } from './invoiceMapper';
-
-async function parseError(response: Response, fallback: string): Promise<string> {
-  const body = await response.json().catch(() => ({} as any));
-  let message = body.error || response.statusText || fallback;
-  if (Array.isArray(body.errors) && body.errors.length) {
-    message += `: ${body.errors.join(', ')}`;
-  }
-  return message;
-}
-
+// Browser side of /api/invoices and /api/folders (the first load comes from the server render)
 export const InvoiceService = {
+  fetchAll: () => api<Invoice[]>('/api/invoices'),
 
-  /**
-   * Fetch all invoices for the current user.
-   * Returns [] on failure (non-blocking for dashboard load). Callers display their own error UI.
-   */
-  async fetchAll(userId: string): Promise<Invoice[]> {
-    const response = await fetch('/api/invoices');
-    if (!response.ok) return [];
-    const data = await response.json();
-    return (data || []).map(mapDbRowToInvoice);
-  },
+  save: (invoice: Invoice) =>
+    api<Invoice>('/api/invoices', { method: 'POST', json: { invoice: mapInvoiceToPayload(invoice) } }),
 
-  /**
-   * Fetch all folders for the current user.
-   */
-  async fetchFolders(userId: string): Promise<Folder[]> {
-    const response = await fetch('/api/folders');
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data || [];
-  },
+  delete: (invoiceId: string) => api<unknown>(`/api/invoices/${invoiceId}`, { method: 'DELETE' }),
 
-  async createFolder(userId: string, name: string, color: string = 'blue'): Promise<Folder> {
-    const response = await fetch('/api/folders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, color })
-    });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to create folder'));
-    return response.json();
-  },
+  deleteMultiple: (ids: string[]) => api<unknown>('/api/invoices/batch', { method: 'POST', json: { ids } }),
 
-  async deleteMultipleFolders(folderIds: string[]): Promise<void> {
-    const response = await fetch('/api/folders/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: folderIds })
-    });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to delete folders'));
-  },
+  fetchFolders: () => api<Folder[]>('/api/folders'),
 
-  async deleteFolder(folderId: string): Promise<void> {
-    const response = await fetch(`/api/folders/${folderId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to delete folder'));
-  },
+  createFolder: (name: string, color = 'blue') => api<Folder>('/api/folders', { method: 'POST', json: { name, color } }),
 
-  async updateFolder(folderId: string, name: string, color: string): Promise<Folder> {
-    const response = await fetch(`/api/folders/${folderId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, color })
-    });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to update folder'));
-    return response.json();
-  },
+  updateFolder: (folderId: string, name: string, color: string) =>
+    api<Folder>(`/api/folders/${folderId}`, { method: 'PUT', json: { name, color } }),
 
-  async save(invoice: Invoice, userId: string): Promise<Invoice> {
-    const payload = mapInvoiceToPayload(invoice);
-    const response = await fetch('/api/invoices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invoice: payload })
-    });
+  deleteFolder: (folderId: string) => api<unknown>(`/api/folders/${folderId}`, { method: 'DELETE' }),
 
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to save invoice'));
-
-    const data = await response.json();
-    if (data.success && data.data) return mapDbRowToInvoice(data.data);
-    throw new Error('No data returned from API');
-  },
-
-  async deleteMultiple(invoiceIds: string[]): Promise<void> {
-    const response = await fetch('/api/invoices/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: invoiceIds })
-    });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to delete invoices'));
-  },
-
-  async delete(invoiceId: string): Promise<void> {
-    const response = await fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error(await parseError(response, 'Failed to delete invoice'));
-  }
+  deleteMultipleFolders: (ids: string[]) => api<unknown>('/api/folders/batch', { method: 'POST', json: { ids } }),
 };

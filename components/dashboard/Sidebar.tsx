@@ -3,13 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '../ui/button';
-import { Stamp, StatusStamp } from '../ui/stamp';
-import { Logo } from '../ui/logo';
-import { Icon } from '../ui/icon';
-import { PLAN_LIMITS, PLAN_LIMITS_ENFORCED } from '../../services/stripeService';
+import { Button } from '@/components/ui/button';
+import { Stamp, StatusStamp } from '@/components/ui/stamp';
+import { Logo } from '@/components/ui/logo';
+import { Icon } from '@/components/ui/icon';
+import { PLAN_LIMITS, PLAN_LIMITS_ENFORCED } from '@/services/stripeService';
 import { getFolderColorClass, getFolderBgClass } from './modals/FolderModal';
 import { useDashboard } from './DashboardContext';
+import { useInvoiceEditor } from './InvoiceEditorContext';
 import { cn } from '@/lib/cn';
 import { formatEUR, invoiceTotal } from '@/lib/format';
 
@@ -21,19 +22,19 @@ const smallField = 'w-full rounded-lg border border-rule bg-paper py-1.5 text-sm
 
 export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     const {
-        user, profile, invoices, folders, currentInvoice,
-        isLoadingList, isBusy, fetchError,
+        user, profile, invoices, folders,
+        isLoadingList, fetchError,
         selectedInvoiceIds, selectedFolderIds, selectedFolderId, setSelectedFolderId,
         searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
         showDateFilter, setShowDateFilter, dateRange, setDateRange, displayedInvoices,
-        handleNewInvoice, handleInvoiceSelect,
         handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
         handleEditFolder, handleDeleteFolderClick,
-        promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
+        toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
         setShowUpgradeModal, onLogout,
     } = useDashboard();
+    const { openInvoiceId, isBusy, handleNewInvoice, promptDeleteInvoice, setActiveTab } = useInvoiceEditor();
     const pathname = usePathname();
-    const isInvoicesPage = pathname === '/dashboard';
+    const isInvoicesPage = pathname === '/dashboard' || pathname.startsWith('/dashboard/factures/');
 
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
@@ -301,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                         <ul className="space-y-px">
                             {displayedInvoices.map((inv) => {
                                 const invFolder = folders.find(f => f.id === inv.folderId);
-                                const isCurrent = currentInvoice?.id === inv.id;
+                                const isCurrent = openInvoiceId === inv.id;
                                 const isSelected = selectedInvoiceIds.has(inv.id);
                                 return (
                                     <li
@@ -311,7 +312,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                             isCurrent ? 'border-primary-200 bg-primary-50' : isSelected ? 'border-transparent bg-primary-50/60' : 'border-transparent hover:bg-paper',
                                         )}
                                     >
-                                        {/* Checkbox, open and delete are siblings: interactive controls must not be nested */}
+                                        {/* Checkbox, link and delete are siblings: interactive controls must not be nested.
+                                            The link isn't prefetched: the invoices are already in the browser. */}
                                         <input
                                             type="checkbox"
                                             checked={isSelected}
@@ -322,10 +324,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                                 selectedInvoiceIds.size > 0 ? 'opacity-100' : 'opacity-0 focus:opacity-100 group-hover:opacity-100',
                                             )}
                                         />
-                                        <button
-                                            type="button"
-                                            aria-current={isCurrent || undefined}
-                                            onClick={() => { handleInvoiceSelect(inv); onClose?.(); }}
+                                        <Link
+                                            href={`/dashboard/factures/${inv.id}`}
+                                            prefetch={false}
+                                            aria-current={isCurrent ? 'page' : undefined}
+                                            onClick={(e) => {
+                                                if (isBusy) { e.preventDefault(); return; }
+                                                setActiveTab('editor');
+                                                onClose?.();
+                                            }}
                                             className="block w-full rounded-lg py-2.5 pl-[34px] pr-3 text-left"
                                         >
                                             <span className="flex items-center gap-2">
@@ -347,7 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                                         : new Date(inv.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                                                 </span>
                                             </span>
-                                        </button>
+                                        </Link>
                                         <button
                                             type="button"
                                             onClick={(e) => promptDeleteInvoice(inv.id, e)}

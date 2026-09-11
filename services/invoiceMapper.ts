@@ -1,6 +1,6 @@
 import { Invoice, InvoiceStatus, InvoiceTemplateId } from '../types/index';
 
-/** Converts an /api/invoices row (snake_case columns, already decrypted) to the app's Invoice */
+/** Converts an invoices row (snake_case columns, decrypted by the Data Access Layer) to the app's Invoice */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mapDbRowToInvoice = (row: any): Invoice => {
   const dbStatus = (row.status as InvoiceStatus) || InvoiceStatus.DRAFT;

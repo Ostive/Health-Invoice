@@ -1,3 +1,4 @@
+import type { PatientInput } from '@/lib/schemas';
 
 export enum InvoiceStatus {
     DRAFT = 'Brouillon',
@@ -60,6 +61,21 @@ export interface UserProfile {
     invoice_counter?: number;
     last_invoice_year?: number;
     is_vat_applicable?: boolean;
+}
+
+/** The signed-in user as the browser sees it (the full Supabase user stays on the server) */
+export interface SessionUser {
+    id: string;
+    email: string;
+}
+
+/** Read on the server by the dashboard layout, handed to the client provider */
+export interface DashboardData {
+    profile: UserProfile;
+    invoices: Invoice[];
+    invoicesError: string | null;
+    folders: Folder[];
+    patients: PatientInput[];
 }
 
 // For Gemini Generation

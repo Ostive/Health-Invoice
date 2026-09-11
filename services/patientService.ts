@@ -1,43 +1,13 @@
-import { PatientInput } from '@/lib/schemas';
+import type { PatientInput } from '@/lib/schemas';
+import { api } from './api';
 
-async function parseError(response: Response, fallback: string): Promise<string> {
-    const body = await response.json().catch(() => ({} as any));
-    let message = body.error || response.statusText || fallback;
-    if (Array.isArray(body.errors) && body.errors.length) {
-        message += `: ${body.errors.join(', ')}`;
-    }
-    return message;
-}
-
+// Browser side of /api/patients (the first load comes from the server render)
 export const PatientService = {
-    async fetchAll(): Promise<PatientInput[]> {
-        const res = await fetch('/api/patients');
-        if (!res.ok) return [];
-        return res.json();
-    },
+    fetchAll: () => api<PatientInput[]>('/api/patients'),
 
-    async create(patient: PatientInput): Promise<PatientInput> {
-        const res = await fetch('/api/patients', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patient),
-        });
-        if (!res.ok) throw new Error(await parseError(res, 'Failed to create patient'));
-        return res.json();
-    },
+    create: (patient: PatientInput) => api<PatientInput>('/api/patients', { method: 'POST', json: patient }),
 
-    async update(id: string, patient: PatientInput): Promise<PatientInput> {
-        const res = await fetch(`/api/patients/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patient),
-        });
-        if (!res.ok) throw new Error(await parseError(res, 'Failed to update patient'));
-        return res.json();
-    },
+    update: (id: string, patient: PatientInput) => api<PatientInput>(`/api/patients/${id}`, { method: 'PUT', json: patient }),
 
-    async delete(id: string): Promise<void> {
-        const res = await fetch(`/api/patients/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(await parseError(res, 'Failed to delete patient'));
-    }
+    delete: (id: string) => api<unknown>(`/api/patients/${id}`, { method: 'DELETE' }),
 };

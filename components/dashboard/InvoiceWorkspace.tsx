@@ -1,13 +1,16 @@
 'use client'
 
 import React from 'react';
+import Link from 'next/link';
 import { useDashboard } from './DashboardContext';
-import { InvoiceEditor } from '../InvoiceEditor';
-import { InvoicePreview } from '../InvoicePreview';
-import { Button, Spinner } from '../ui/button';
-import { Modal } from '../ui/modal';
-import { Icon, IconName } from '../ui/icon';
-import { StatusStamp } from '../ui/stamp';
+import { useInvoiceEditor } from './InvoiceEditorContext';
+import { InvoiceEditor } from '@/components/InvoiceEditor';
+import { InvoicePreview } from '@/components/InvoicePreview';
+import { Button, Spinner } from '@/components/ui/button';
+import { buttonClass } from '@/components/ui/button-styles';
+import { Modal } from '@/components/ui/modal';
+import { Icon, IconName } from '@/components/ui/icon';
+import { StatusStamp } from '@/components/ui/stamp';
 import { cn } from '@/lib/cn';
 import { errorMessage } from '@/lib/errors';
 
@@ -30,14 +33,13 @@ const MobileAction = ({ icon, label, onClick, disabled, busy, tone = 'default' }
 );
 
 export const InvoiceWorkspace = () => {
+    const { profile, setToast, folders, patients } = useDashboard();
     const {
-        currentInvoice, setCurrentInvoice,
-        profile,
+        openInvoiceId, currentInvoice, setCurrentInvoice, isPersisted, hasUnsavedChanges,
         activeTab, setActiveTab,
         isBusy, isSaving, isExporting, setIsExporting,
-        handleNewInvoice, handleSaveInvoice, promptDeleteInvoice,
-        setToast, folders, patients, hasUnsavedChanges, invoices
-    } = useDashboard();
+        handleNewInvoice, handleSaveInvoice, closeInvoice, promptDeleteInvoice,
+    } = useInvoiceEditor();
 
     const [showUnsavedModal, setShowUnsavedModal] = React.useState(false);
     const [pendingAction, setPendingAction] = React.useState<'print' | 'pdf' | 'close' | null>(null);
@@ -55,11 +57,6 @@ export const InvoiceWorkspace = () => {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [hasUnsavedChanges]);
 
-    // Check if the current invoice actually exists in the database list
-    const isPersisted = React.useMemo(() => {
-        return currentInvoice ? invoices.some(i => i.id === currentInvoice.id) : false;
-    }, [currentInvoice, invoices]);
-
     const printInvoice = () => {
         try {
             window.print();
@@ -75,7 +72,7 @@ export const InvoiceWorkspace = () => {
             setShowUnsavedModal(true);
             return;
         }
-        setCurrentInvoice(null);
+        closeInvoice();
     };
 
     const executePendingAction = async () => {
@@ -84,7 +81,7 @@ export const InvoiceWorkspace = () => {
         } else if (pendingAction === 'pdf') {
             await performPDFDownload();
         } else if (pendingAction === 'close') {
-            setCurrentInvoice(null);
+            closeInvoice();
         }
         setPendingAction(null);
         setShowUnsavedModal(false);
@@ -106,9 +103,8 @@ export const InvoiceWorkspace = () => {
     const performPDFDownload = async () => {
         if (!currentInvoice) return;
 
-        // Final guard: Must be persisted
-        const serverSideCheck = invoices.some(i => i.id === currentInvoice.id);
-        if (!serverSideCheck) {
+        // Final guard: the PDF is rendered from the stored invoice
+        if (!isPersisted) {
             setToast({ message: 'Enregistrez la facture avant de télécharger le PDF.', type: 'error' });
             setIsExporting(false);
             return;
@@ -287,13 +283,25 @@ export const InvoiceWorkspace = () => {
                                 Brouillon
                             </span>
                         </div>
-                        <h2 className="font-display text-lg font-semibold text-ink">Aucune facture ouverte</h2>
-                        <p className="mx-auto mb-6 mt-2 max-w-xs text-sm leading-relaxed text-ink-soft">
-                            Ouvrez une facture de l’historique, ou créez-en une nouvelle et dictez vos actes.
-                        </p>
-                        <Button onClick={handleNewInvoice}>
-                            <Icon name="plus" strokeWidth={2.25} />Nouvelle facture
-                        </Button>
+                        {openInvoiceId ? (
+                            <>
+                                <h2 className="font-display text-lg font-semibold text-ink">Facture introuvable</h2>
+                                <p className="mx-auto mb-6 mt-2 max-w-xs text-sm leading-relaxed text-ink-soft">
+                                    Cette facture n’existe pas ou a été supprimée.
+                                </p>
+                                <Link href="/dashboard" className={buttonClass({ variant: 'outline' })}>Retour aux factures</Link>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="font-display text-lg font-semibold text-ink">Aucune facture ouverte</h2>
+                                <p className="mx-auto mb-6 mt-2 max-w-xs text-sm leading-relaxed text-ink-soft">
+                                    Ouvrez une facture de l’historique, ou créez-en une nouvelle et dictez vos actes.
+                                </p>
+                                <Button onClick={handleNewInvoice}>
+                                    <Icon name="plus" strokeWidth={2.25} />Nouvelle facture
+                                </Button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

@@ -2,7 +2,7 @@ import { SaveInvoiceSchema } from '@/lib/schemas';
 import { mapDbRowToInvoice, mapInvoiceToPayload } from '@/services/invoiceMapper';
 import { InvoiceStatus } from '@/types';
 
-// Shape returned by GET /api/invoices: snake_case columns, patient_id renamed to patientId
+// An invoices row as read by the Data Access Layer: snake_case columns (patientId as older API responses sent it)
 const row = {
     id: '6f1c2b8e-3c1e-4a51-9a3b-1d2e3f4a5b6c',
     number: 'FAC-2026-00005',

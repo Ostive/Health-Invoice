@@ -47,3 +47,6 @@ next-env.d.ts
 .cursor/
 CLAUDE.md
 AGENTS.md
+
+# Supabase CLI local state (linked project, versions)
+/supabase/.temp/

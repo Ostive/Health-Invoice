@@ -5,10 +5,12 @@ import { readFile } from 'node:fs/promises';
 test.skip(!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD, 'Définir E2E_EMAIL et E2E_PASSWORD');
 test.describe.configure({ mode: 'serial' });
 
-/** Opens the first invoice of the sidebar list whose row contains `text` */
+const INVOICE_URL = /\/dashboard\/factures\/[0-9a-f-]{36}$/;
+
+/** Opens the first invoice of the sidebar list whose row contains `text` (each row links to the invoice's URL) */
 async function openInvoice(page: Page, text: string) {
     const sidebar = page.getByRole('complementary');
-    await sidebar.getByRole('button').filter({ hasText: text }).first().click();
+    await sidebar.getByRole('link').filter({ hasText: text }).first().click();
 }
 
 test('les factures du compte de démonstration sont listées', async ({ page }) => {
@@ -96,4 +98,100 @@ test('chaque rubrique a sa propre URL', async ({ page }) => {
 
     await page.goBack();
     await expect(page).toHaveURL(/\/dashboard\/parametres$/);
+});
+
+test('chaque facture a sa propre adresse : rechargeable, avec retour arrière', async ({ page }) => {
+    await page.goto('/dashboard');
+    await openInvoice(page, 'Brouillon');
+    await expect(page).toHaveURL(INVOICE_URL);
+    await expect(page.getByLabel('Nom complet')).toHaveValue('Jeanne Lefèvre');
+    const invoiceUrl = page.url();
+
+    // Opened straight from the URL, with the data read on the server
+    await page.reload();
+    await expect(page.getByLabel('Nom complet')).toHaveValue('Jeanne Lefèvre');
+
+    await page.getByRole('button', { name: 'Fermer', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole('heading', { name: 'Aucune facture ouverte' })).toBeVisible();
+
+    await page.goBack();
+    await expect(page).toHaveURL(invoiceUrl);
+    await expect(page.getByLabel('Nom complet')).toHaveValue('Jeanne Lefèvre');
+
+    await page.goto('/dashboard/factures/00000000-0000-4000-8000-000000000000');
+    await expect(page.getByRole('heading', { name: 'Facture introuvable' })).toBeVisible();
+});
+
+test('nouvelle facture : enregistrée elle obtient son adresse, supprimée elle disparaît', async ({ page }) => {
+    await page.goto('/dashboard');
+    const sidebar = page.getByRole('complementary');
+    const patient = `Patient e2e ${Date.now()}`;
+
+    await sidebar.getByRole('button', { name: 'Nouvelle facture' }).click();
+    await page.getByLabel('Nom complet').fill(patient);
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(page.getByText(/Facture sauvegardée : FAC-/)).toBeVisible();
+    await expect(page).toHaveURL(INVOICE_URL);
+    await expect(sidebar.getByRole('link').filter({ hasText: patient })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Supprimer', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer la facture' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(sidebar.getByText(patient)).toHaveCount(0);
+
+    // Still gone after a reload: it was deleted on the server
+    await page.reload();
+    await expect(sidebar.getByText('Jeanne Lefèvre').first()).toBeVisible();
+    await expect(sidebar.getByText(patient)).toHaveCount(0);
+});
+
+test('dossiers : créer, renommer puis supprimer', async ({ page }) => {
+    await page.goto('/dashboard');
+    const sidebar = page.getByRole('complementary');
+    const name = `Tournée e2e ${Date.now()}`;
+    const renamed = `${name} (renommé)`;
+
+    await sidebar.getByRole('button', { name: 'Créer un dossier' }).click();
+    await page.getByLabel('Nom du dossier').fill(name);
+    await page.getByRole('button', { name: 'Créer le dossier' }).click();
+    await expect(sidebar.getByRole('button', { name, exact: true })).toBeVisible();
+
+    await sidebar.getByRole('button', { name: `Renommer le dossier ${name}` }).click();
+    await page.getByLabel('Nom du dossier').fill(renamed);
+    await page.getByRole('dialog').getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(sidebar.getByRole('button', { name: renamed, exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(sidebar.getByRole('button', { name: renamed, exact: true })).toBeVisible();
+
+    await sidebar.getByRole('button', { name: `Supprimer le dossier ${renamed}` }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer le dossier' }).click();
+    await expect(sidebar.getByText(renamed)).toHaveCount(0);
+});
+
+test('patients : ajouter, modifier puis supprimer', async ({ page }) => {
+    await page.goto('/dashboard/patients');
+    const main = page.getByRole('main');
+    const dialog = page.getByRole('dialog');
+    const name = `Patient e2e ${Date.now()}`;
+
+    await main.getByRole('button', { name: 'Nouveau patient' }).click();
+    await dialog.getByLabel('Nom complet').fill(name);
+    await dialog.getByLabel('N° de sécurité sociale').fill('185057512345678');
+    await dialog.getByRole('button', { name: 'Ajouter le patient' }).click();
+    await expect(main.getByText(name)).toBeVisible();
+
+    await main.getByRole('button', { name: `Modifier ${name}` }).click();
+    await dialog.getByLabel('Téléphone').fill('06 12 34 56 78');
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(main.getByText('06 12 34 56 78')).toBeVisible();
+
+    // Read back from the server: the SSN is stored encrypted and comes back decrypted
+    await page.reload();
+    await expect(main.getByText('185057512345678')).toBeVisible();
+
+    await main.getByRole('button', { name: `Supprimer ${name}` }).click();
+    await dialog.getByRole('button', { name: 'Supprimer le patient' }).click();
+    await expect(main.getByText(name)).toHaveCount(0);
 });

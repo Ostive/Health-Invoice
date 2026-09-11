@@ -1,6 +1,9 @@
+import 'server-only'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// Supabase client acting as the signed-in user (auth cookie, row-level security applies).
+// Pages and Route Handlers go through lib/dal/session.ts rather than calling this directly.
 export async function createClient() {
   const cookieStore = await cookies()
 
@@ -26,18 +29,4 @@ export async function createClient() {
       },
     }
   )
-}
-
-// Helper to get user from server component
-export async function getUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  return { user, error }
-}
-
-// Helper to get session from server component
-export async function getSession() {
-  const supabase = await createClient()
-  const { data: { session }, error } = await supabase.auth.getSession()
-  return { session, error }
 }

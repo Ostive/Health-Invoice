@@ -44,6 +44,11 @@ export function handleApiError(error: unknown, { route, userId }: HandleOptions)
         return validationErrorResponse(error);
     }
 
+    // request.json() on a body that isn't JSON
+    if (error instanceof SyntaxError) {
+        return NextResponse.json({ error: 'Invalid JSON body', requestId }, { status: 400 });
+    }
+
     if (error instanceof ApiError) {
         console.warn(`[${route}] ${error.code ?? error.status}: ${error.message}`, { userId, requestId });
         return NextResponse.json(

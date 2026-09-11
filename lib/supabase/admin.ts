@@ -1,4 +1,7 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+
+// Service role: bypasses row-level security. Never importable from a Client Component.
 
 export function createAdminClient() {
     return createClient(

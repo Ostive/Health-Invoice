@@ -21,7 +21,7 @@ test.use({
 
 async function openDraft(page: Page) {
     await page.goto('/dashboard');
-    await page.getByRole('complementary').getByRole('button').filter({ hasText: 'Brouillon' }).first().click();
+    await page.getByRole('complementary').getByRole('link').filter({ hasText: 'Brouillon' }).first().click();
     await expect(page.getByLabel('Nom complet')).toHaveValue('Jeanne Lefèvre');
 }
 

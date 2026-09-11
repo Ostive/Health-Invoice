@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Button } from '../ui/button';
-import { Modal } from '../ui/modal';
-import { Field, Input, Textarea } from '../ui/input';
-import { Icon } from '../ui/icon';
-import { PatientInput } from '../../lib/schemas';
-import { PatientService } from '../../services/patientService';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Field, Input, Textarea } from '@/components/ui/input';
+import { Icon } from '@/components/ui/icon';
+import type { PatientInput } from '@/lib/schemas';
+import { PatientService } from '@/services/patientService';
 import { cn } from '@/lib/cn';
 import { errorMessage } from '@/lib/errors';
 
@@ -197,7 +197,7 @@ export const PatientsView = () => {
 };
 
 const PatientModal = ({ onClose, patient, onSuccess }: { onClose: () => void, patient: PatientInput | null, onSuccess: () => void }) => {
-    const { user, setToast } = useDashboard();
+    const { setToast } = useDashboard();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState<PatientInput>(patient || {
         name: '',
@@ -213,8 +213,6 @@ const PatientModal = ({ onClose, patient, onSuccess }: { onClose: () => void, pa
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user?.id) return;
-
         setIsLoading(true);
         try {
             if (patient?.id) {
