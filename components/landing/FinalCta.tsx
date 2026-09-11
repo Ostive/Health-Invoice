@@ -1,11 +1,8 @@
-'use client'
-
-import React from 'react'
 import Link from 'next/link'
-import { buttonClass } from '../ui/button'
+import { buttonClass } from '@/components/ui/button-styles'
 import { Reveal } from './Reveal'
 
-export const FinalCta: React.FC = () => {
+export function FinalCta() {
     return (
         <section className="px-4 pb-20 sm:px-6 md:pb-28">
             <Reveal className="mx-auto max-w-6xl">

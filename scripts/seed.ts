@@ -9,7 +9,7 @@
  * Sensitive fields are encrypted with ENCRYPTION_KEY, exactly like the API routes do.
  * All names, numbers and amounts below are fictitious.
  */
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { encrypt } from '../lib/encryption.ts'
 
@@ -54,9 +54,8 @@ const day = (offset: number) => {
     return d.toISOString().slice(0, 10)
 }
 
-let lineCounter = 0
 const line = (description: string, quantity: number, unitPrice: number) => ({
-    id: `seed-${++lineCounter}`,
+    id: randomUUID(),
     description: encrypt(description),
     quantity,
     unitPrice,

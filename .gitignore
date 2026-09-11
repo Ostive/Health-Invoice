@@ -7,6 +7,10 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/e2e/.auth/
+test_output.txt
 
 # next.js
 /.next/

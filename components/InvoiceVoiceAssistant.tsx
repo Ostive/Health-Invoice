@@ -7,6 +7,7 @@ import { fieldClass } from './ui/input';
 import { Invoice } from '../types/index';
 import { cn } from '@/lib/cn';
 import { errorMessage } from '@/lib/errors';
+import { generateUUID } from '@/lib/uuid';
 
 interface InvoiceVoiceAssistantProps {
     invoice: Invoice;
@@ -50,7 +51,7 @@ export const InvoiceVoiceAssistant: React.FC<InvoiceVoiceAssistantProps> = ({ in
 
             if (data.items && Array.isArray(data.items)) {
                 const newItems = data.items.map((item: { description?: string; quantity?: number; unitPrice?: number }) => ({
-                    id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
+                    id: generateUUID(),
                     description: item.description || '',
                     quantity: item.quantity || 1,
                     unitPrice: item.unitPrice || 0

@@ -157,15 +157,19 @@ export async function POST(request: Request) {
             if (profile) sellerSnapshot = profile
         }
 
+        // The API speaks camelCase (InvoiceSchema); the table uses snake_case columns
+        const { dueDate, folderId, patientId, ...columns } = invoiceToSave
         const payload = {
-            ...invoiceToSave,
+            ...columns,
+            due_date: dueDate,
+            folder_id: folderId || null,
             user_id: user.id,
             updated_at: new Date().toISOString(),
             ...(!invoice.id && {
                 created_at: new Date().toISOString(),
                 number: null
             }),
-            patient_id: invoice.patientId || null,
+            patient_id: patientId || null,
             seller_snapshot: sellerSnapshot
         }
 

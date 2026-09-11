@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button, buttonClass } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { buttonClass } from '@/components/ui/button-styles'
 import { Field, Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import { Legal, LegalPageType } from '@/components/Legal'
 import { cn } from '@/lib/cn'
 import { errorMessage } from '@/lib/errors'
 import { PasswordInput, PasswordChecklist, missingPasswordRules } from './PasswordField'
@@ -48,7 +48,6 @@ export function AuthForm({ mode, initialError = null }: { mode: AuthMode; initia
     const [notice, setNotice] = useState<string | null>(null)
     const [sentTo, setSentTo] = useState<string | null>(null)
     const [resendIn, setResendIn] = useState(0)
-    const [legal, setLegal] = useState<LegalPageType | null>(null)
 
     useEffect(() => {
         try {
@@ -266,9 +265,9 @@ export function AuthForm({ mode, initialError = null }: { mode: AuthMode; initia
                 {mode === 'register' && (
                     <p className="text-center text-xs leading-relaxed text-ink-faint">
                         En créant un compte, vous acceptez les{' '}
-                        <button type="button" onClick={() => setLegal('cgu')} className="underline underline-offset-2 hover:text-ink">conditions d’utilisation</button>
+                        <Link href="/cgu" target="_blank" className="underline underline-offset-2 hover:text-ink">conditions d’utilisation</Link>
                         {' '}et la{' '}
-                        <button type="button" onClick={() => setLegal('privacy')} className="underline underline-offset-2 hover:text-ink">politique de confidentialité</button>.
+                        <Link href="/confidentialite" target="_blank" className="underline underline-offset-2 hover:text-ink">politique de confidentialité</Link>.
                     </p>
                 )}
             </form>
@@ -287,7 +286,6 @@ export function AuthForm({ mode, initialError = null }: { mode: AuthMode; initia
                 )}
             </p>
 
-            {legal && <Legal type={legal} onClose={() => setLegal(null)} />}
         </div>
     )
 }

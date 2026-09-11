@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { InvoiceStatus } from '@/types';
 
 export const LineItemSchema = z.object({
-    id: z.uuid().optional(),
+    // Line ids are only keys inside the items JSON; older invoices use timestamp ids
+    id: z.string().min(1).max(64).optional(),
     description: z.string({ message: "La description de la prestation est requise" }).min(1, "La description est requise"),
     quantity: z.number({ message: "La quantité est requise" }).min(0.0001, "La quantité doit être positive"), // Relaxed min slightly
     unitPrice: z.number({ message: "Le prix unitaire est requis" }).min(0, "Le prix unitaire ne peut pas être négatif"),

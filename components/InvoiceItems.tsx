@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { SectionLabel, fieldClass } from './ui/input';
 import { Icon } from './ui/icon';
 import { cn } from '@/lib/cn';
+import { generateUUID } from '@/lib/uuid';
 import { formatEUR, invoiceTotal } from '@/lib/format';
 
 interface InvoiceItemsProps {
@@ -27,7 +28,7 @@ export const InvoiceItems: React.FC<InvoiceItemsProps> = ({ items, onChange, isR
 
     const addItem = () => {
         const newItem: LineItem = {
-            id: Date.now().toString(),
+            id: generateUUID(),
             description: '',
             quantity: 1,
             unitPrice: 0

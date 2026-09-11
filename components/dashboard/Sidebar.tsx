@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Stamp, StatusStamp } from '../ui/stamp';
 import { Logo } from '../ui/logo';
@@ -28,9 +30,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
         handleEditFolder, handleDeleteFolderClick,
         promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
-        setShowUpgradeModal, handleOpenSettings, onLogout,
-        currentView, setCurrentView
+        setShowUpgradeModal, onLogout,
     } = useDashboard();
+    const pathname = usePathname();
+    const isInvoicesPage = pathname === '/dashboard';
 
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
@@ -77,29 +80,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             </div>
 
             <div className="px-3 pt-3">
-                <div role="tablist" aria-label="Rubrique" className="grid grid-cols-2 gap-1 rounded-lg bg-paper p-1">
+                <nav aria-label="Rubriques" className="grid grid-cols-2 gap-1 rounded-lg bg-paper p-1">
                     {([
-                        { id: 'invoices', label: 'Factures', icon: 'document' },
-                        { id: 'patients', label: 'Patients', icon: 'users' },
+                        { href: '/dashboard', label: 'Factures', icon: 'document', active: isInvoicesPage },
+                        { href: '/dashboard/patients', label: 'Patients', icon: 'users', active: pathname.startsWith('/dashboard/patients') },
                     ] as const).map(tab => (
-                        <button
-                            key={tab.id}
-                            role="tab"
-                            aria-selected={currentView === tab.id}
-                            onClick={() => { setCurrentView(tab.id); onClose?.(); }}
+                        <Link
+                            key={tab.href}
+                            href={tab.href}
+                            aria-current={tab.active ? 'page' : undefined}
+                            onClick={() => onClose?.()}
                             className={cn(
                                 'flex items-center justify-center gap-2 rounded-md py-1.5 text-[13px] font-medium transition-colors',
-                                currentView === tab.id ? 'bg-white text-ink shadow-[0_1px_2px_rgb(25_27_38/0.08)] ring-1 ring-rule' : 'text-ink-soft hover:text-ink',
+                                tab.active ? 'bg-white text-ink shadow-[0_1px_2px_rgb(25_27_38/0.08)] ring-1 ring-rule' : 'text-ink-soft hover:text-ink',
                             )}
                         >
-                            <Icon name={tab.icon} className={currentView === tab.id ? 'text-primary-600' : undefined} />
+                            <Icon name={tab.icon} className={tab.active ? 'text-primary-600' : undefined} />
                             {tab.label}
-                        </button>
+                        </Link>
                     ))}
-                </div>
+                </nav>
             </div>
 
-            {currentView === 'invoices' && (
+            {isInvoicesPage && (
                 <>
                     <div className="px-3 pt-3">
                         <Button onClick={() => { handleNewInvoice(); onClose?.(); }} className="w-full" disabled={isBusy}>
@@ -394,9 +397,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                     </button>
                     {userMenuOpen && (
                         <div role="menu" className="absolute bottom-full left-0 z-50 mb-2 w-full rounded-xl border border-rule bg-white p-1 shadow-pop animate-in fade-in slide-in-from-bottom-1 duration-150">
-                            <button role="menuitem" onClick={handleOpenSettings} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-paper">
+                            <Link role="menuitem" href="/dashboard/parametres" onClick={() => setUserMenuOpen(false)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-paper">
                                 <Icon name="settings" className="text-ink-faint" />Paramètres
-                            </button>
+                            </Link>
                             <div className="my-1 h-px bg-rule" />
                             <button role="menuitem" onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50">
                                 <Icon name="logout" />Se déconnecter

@@ -20,6 +20,14 @@ const nextConfig = {
       },
     ];
   },
+  // Former English settings URLs (bookmarks, Stripe return URLs)
+  async redirects() {
+    return [
+      { source: '/dashboard/parameter', destination: '/dashboard/parametres', permanent: true },
+      { source: '/dashboard/subscription', destination: '/dashboard/parametres/abonnement', permanent: true },
+      { source: '/dashboard/security', destination: '/dashboard/parametres/securite', permanent: true },
+    ];
+  },
 };
 
 module.exports = nextConfig;

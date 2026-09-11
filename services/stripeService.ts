@@ -1,5 +1,4 @@
 
-import { supabase } from './supabase';
 
 // Load from environment variables
 export const STRIPE_PAYMENT_LINK = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK || 'https://buy.stripe.com/test_';

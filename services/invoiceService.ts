@@ -1,50 +1,6 @@
 
-import { supabase } from './supabase';
-import { Invoice, InvoiceStatus, InvoiceTemplateId, Folder } from '../types/index';
-
-// Mapper to convert DB rows to Invoice objects
-const mapDbRowToInvoice = (row: any): Invoice => {
-  const dbStatus = (row.status as InvoiceStatus) || InvoiceStatus.DRAFT;
-  const dueDate = row.due_date || new Date().toISOString().split('T')[0];
-  const today = new Date().toISOString().split('T')[0];
-
-  let computedStatus = dbStatus;
-  // Auto-calculate LATE status on fetch
-  if (dbStatus !== InvoiceStatus.PAID && dueDate < today) {
-    computedStatus = InvoiceStatus.LATE;
-  }
-
-  return {
-    id: row.id,
-    number: row.number,
-    date: row.date,
-    dueDate: dueDate,
-    client: row.client || { name: '', address: '', email: '' },
-    items: row.items || [],
-    status: computedStatus,
-    template: (row.template as InvoiceTemplateId) || 'modern',
-    notes: row.notes || '',
-    folderId: row.folder_id || null
-  };
-};
-
-// Map Invoice object to DB Payload
-const mapInvoiceToPayload = (invoice: Invoice, userId: string) => {
-  return {
-    id: invoice.id,
-    user_id: userId,
-    number: invoice.number,
-    date: invoice.date,
-    due_date: invoice.dueDate,
-    status: invoice.status,
-    template: invoice.template,
-    notes: invoice.notes || '',
-    client: invoice.client,
-    items: invoice.items,
-    folder_id: invoice.folderId || null,
-    updated_at: new Date().toISOString()
-  };
-};
+import { Invoice, Folder } from '../types/index';
+import { mapDbRowToInvoice, mapInvoiceToPayload } from './invoiceMapper';
 
 async function parseError(response: Response, fallback: string): Promise<string> {
   const body = await response.json().catch(() => ({} as any));
@@ -113,7 +69,7 @@ export const InvoiceService = {
   },
 
   async save(invoice: Invoice, userId: string): Promise<Invoice> {
-    const payload = mapInvoiceToPayload(invoice, userId);
+    const payload = mapInvoiceToPayload(invoice);
     const response = await fetch('/api/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

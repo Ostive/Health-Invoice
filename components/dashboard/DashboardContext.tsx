@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import { Invoice, InvoiceStatus, UserProfile, Folder } from '../../types/index';
 import { InvoiceService } from '../../services/invoiceService';
@@ -10,16 +10,7 @@ import { subscribeToPro, PLAN_LIMITS } from '../../services/stripeService';
 import { ToastType } from '../ui/toast';
 import { PatientInput } from '../../lib/schemas';
 
-// Polyfill for crypto.randomUUID
-const generateUUID = () => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-};
+import { generateUUID } from '../../lib/uuid';
 
 interface DashboardContextType {
     user: User | null;
@@ -57,8 +48,6 @@ interface DashboardContextType {
     displayedInvoices: Invoice[];
     activeTab: 'editor' | 'preview';
     setActiveTab: (tab: 'editor' | 'preview') => void;
-    currentView: 'invoices' | 'patients';
-    setCurrentView: (view: 'invoices' | 'patients') => void;
 
     // Modals
     showUpgradeModal: boolean;
@@ -99,7 +88,6 @@ interface DashboardContextType {
     toggleFolderSelection: (id: string) => void;
     toggleSelectAllInvoices: () => void;
     handleStartUpgrade: () => void;
-    handleOpenSettings: () => void;
     onLogout: () => Promise<void>;
 
     // Toast
@@ -120,6 +108,7 @@ export function DashboardProvider({
     initialUser: User
 }) {
     const router = useRouter();
+    const pathname = usePathname();
     const [user, setUser] = useState<User>(initialUser);
     const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -131,7 +120,6 @@ export function DashboardProvider({
 
     // UI State
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
-    const [currentView, setCurrentView] = useState<'invoices' | 'patients'>('invoices');
     const [isLoadingList, setIsLoadingList] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -285,8 +273,14 @@ export function DashboardProvider({
         };
     };
 
+    // The invoice editor lives on /dashboard: opening an invoice from another section navigates there
+    const openInvoicesPage = () => {
+        if (pathname !== '/dashboard') router.push('/dashboard');
+    };
+
     const handleNewInvoice = () => {
-        if (isBusy) return;
+        // Wait for the invoice list: the free-plan quota below is computed from it
+        if (isBusy || isLoadingList) return;
         if (!profile?.is_pro && invoices.length >= PLAN_LIMITS.free.maxInvoices) {
             setShowUpgradeModal(true);
             return;
@@ -294,7 +288,7 @@ export function DashboardProvider({
         const newInv = createEmptyInvoice();
         setCurrentInvoice(newInv);
         setActiveTab('editor');
-        setCurrentView('invoices');
+        openInvoicesPage();
     };
 
     const handleInvoiceSelect = (inv: Invoice) => {
@@ -302,7 +296,7 @@ export function DashboardProvider({
         setCurrentInvoice(inv);
         localStorage.setItem('lastOpenedInvoiceId', inv.id);
         setActiveTab('editor');
-        setCurrentView('invoices');
+        openInvoicesPage();
     };
 
     const handleSaveInvoice = async (): Promise<boolean> => {
@@ -514,10 +508,6 @@ export function DashboardProvider({
         if (user) subscribeToPro(user.id, user.email);
     };
 
-    const handleOpenSettings = () => {
-        router.push('/dashboard/parameter');
-    };
-
     const onLogout = async () => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
@@ -541,7 +531,7 @@ export function DashboardProvider({
             selectedInvoiceIds, selectedFolderIds, selectedFolderId, setSelectedFolderId,
             searchQuery, setSearchQuery, folderSearchQuery, setFolderSearchQuery,
             showDateFilter, setShowDateFilter, dateRange, setDateRange, displayedInvoices,
-            activeTab, setActiveTab, currentView, setCurrentView,
+            activeTab, setActiveTab,
             showUpgradeModal, setShowUpgradeModal, invoiceToDelete, setInvoiceToDelete,
             folderToDelete, setFolderToDelete, showCreateFolderModal, setShowCreateFolderModal,
             folderToEdit, setFolderToEdit, showOnboarding, setShowOnboarding,
@@ -552,7 +542,7 @@ export function DashboardProvider({
             handleBulkDeleteInvoices, handleBulkDeleteFolders, handleCreateFolderClick,
             handleEditFolder, handleDeleteFolderClick, confirmFolderAction, confirmDeleteFolder,
             promptDeleteInvoice, toggleInvoiceSelection, toggleFolderSelection, toggleSelectAllInvoices,
-            handleStartUpgrade, handleOpenSettings, onLogout, toast, setToast,
+            handleStartUpgrade, onLogout, toast, setToast,
             hasUnsavedChanges
         }}>
             {children}

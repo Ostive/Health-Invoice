@@ -1,15 +1,8 @@
-'use client'
-
-import { useDashboard } from '@/components/dashboard/DashboardContext'
+import type { Metadata } from 'next'
 import { InvoiceWorkspace } from '@/components/dashboard/InvoiceWorkspace'
-import { PatientsView } from '@/components/dashboard/PatientsView'
 
-export default function DashboardPage() {
-  const { currentView } = useDashboard();
+export const metadata: Metadata = { title: 'Factures' }
 
-  if (currentView === 'patients') {
-    return <PatientsView />
-  }
-
+export default function InvoicesPage() {
   return <InvoiceWorkspace />
 }

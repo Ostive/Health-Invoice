@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react';
+import Link from 'next/link';
 import { User } from '@supabase/supabase-js';
 import { DashboardProvider, useDashboard } from './DashboardContext';
 import { Sidebar } from './Sidebar';
@@ -29,7 +30,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         showOnboarding, setShowOnboarding, refreshProfile,
         toast, setToast,
         showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
-        handleOpenSettings, onLogout,
+        onLogout,
     } = useDashboard();
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
@@ -89,10 +90,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                             <Sidebar onClose={() => setIsMobileSidebarOpen(false)} />
                         </div>
                         <div className="space-y-1 border-t border-rule p-3">
-                            <button onClick={() => { setIsMobileSidebarOpen(false); handleOpenSettings(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-paper">
+                            <Link href="/dashboard/parametres" onClick={() => setIsMobileSidebarOpen(false)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-paper">
                                 <Icon name="settings" className="text-ink-faint" />Paramètres
                                 {profile?.is_pro && <Stamp tone="ink" className="ml-auto">Pro</Stamp>}
-                            </button>
+                            </Link>
                             <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-700 transition-colors hover:bg-red-50">
                                 <Icon name="logout" />Se déconnecter
                             </button>
