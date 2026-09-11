@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useEffect } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -9,34 +11,33 @@ interface ToastProps {
     duration?: number;
 }
 
-export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }) => {
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            onClose();
-        }, duration);
+const icons: Record<ToastType, { bg: string; path: string }> = {
+    success: { bg: 'bg-vitale-500', path: 'M5 13l4 4L19 7' },
+    info: { bg: 'bg-sent-600', path: 'M12 8h.01M11 12h1v4h1' },
+    error: { bg: 'bg-red-600', path: 'M12 8v4m0 4h.01' },
+};
 
+export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, duration);
         return () => clearTimeout(timer);
     }, [duration, onClose]);
 
-    const bgClass =
-        type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-            type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                'bg-red-50 border-red-200 text-red-800';
-
-    const icon = type === 'success' ? (
-        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-    ) : type === 'info' ? (
-        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-    ) : (
-        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-    );
+    const icon = icons[type];
 
     return (
-        <div className={`fixed bottom-4 right-4 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-bottom-5 fade-in duration-300 ${bgClass}`}>
-            {icon}
-            <span className="font-medium text-sm">{message}</span>
-            <button onClick={onClose} className="ml-2 text-current opacity-50 hover:opacity-100">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <div
+            role={type === 'error' ? 'alert' : 'status'}
+            className="fixed inset-x-4 bottom-20 z-[100] flex items-start gap-3 rounded-xl bg-ink py-3 pl-3.5 pr-2 text-white shadow-pop animate-in fade-in slide-in-from-bottom-4 duration-300 md:inset-x-auto md:bottom-6 md:right-6 md:max-w-sm"
+        >
+            <span className={`mt-px grid size-5 shrink-0 place-items-center rounded-full ${icon.bg}`}>
+                <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d={icon.path} />
+                </svg>
+            </span>
+            <p className="flex-1 text-sm leading-snug">{message}</p>
+            <button onClick={onClose} aria-label="Fermer la notification" className="-my-1 rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white">
+                <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
     );

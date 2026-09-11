@@ -1,88 +1,47 @@
 import React from 'react';
 
+const Bar = ({ className }: { className: string }) => <div className={`animate-pulse rounded bg-paper ${className}`} />;
+
 export const DashboardSkeleton = () => {
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
-            {/* Sidebar Skeleton */}
-            <aside className="hidden lg:block w-72 shrink-0 h-full bg-white border-r border-slate-200 p-4 flex flex-col gap-6">
-                {/* Logo */}
-                <div className="h-8 w-32 bg-slate-100 rounded animate-pulse mb-4"></div>
-
-                {/* New Invoice Button */}
-                <div className="h-10 w-full bg-slate-100 rounded-lg animate-pulse"></div>
-
-                {/* Folders */}
-                <div className="space-y-3 mt-4">
-                    <div className="h-4 w-20 bg-slate-100 rounded animate-pulse"></div>
-                    <div className="h-8 w-full bg-slate-50 rounded animate-pulse"></div>
-                    <div className="h-8 w-full bg-slate-50 rounded animate-pulse"></div>
-                    <div className="h-8 w-full bg-slate-50 rounded animate-pulse"></div>
+        <div className="flex h-screen overflow-hidden bg-paper" aria-busy="true" aria-label="Chargement du tableau de bord">
+            <aside className="hidden h-full w-72 shrink-0 flex-col gap-5 border-r border-rule bg-white p-4 lg:flex">
+                <Bar className="h-8 w-40" />
+                <Bar className="h-10 w-full rounded-lg" />
+                <div className="space-y-2">
+                    <Bar className="h-3 w-16" />
+                    <Bar className="h-7 w-full" />
+                    <Bar className="h-7 w-full" />
                 </div>
-
-                {/* List Items */}
-                <div className="flex-1 space-y-3 mt-4">
-                    <div className="h-16 w-full bg-slate-50 rounded-lg animate-pulse"></div>
-                    <div className="h-16 w-full bg-slate-50 rounded-lg animate-pulse"></div>
-                    <div className="h-16 w-full bg-slate-50 rounded-lg animate-pulse"></div>
+                <div className="flex-1 space-y-2">
+                    <Bar className="h-14 w-full rounded-lg" />
+                    <Bar className="h-14 w-full rounded-lg" />
+                    <Bar className="h-14 w-full rounded-lg" />
                 </div>
-
-                {/* Bottom User Profile */}
-                <div className="mt-auto pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 animate-pulse"></div>
-                        <div className="flex-1 space-y-2">
-                            <div className="h-3 w-24 bg-slate-100 rounded animate-pulse"></div>
-                            <div className="h-2 w-32 bg-slate-100 rounded animate-pulse"></div>
-                        </div>
-                    </div>
+                <div className="flex items-center gap-3 border-t border-rule pt-4">
+                    <Bar className="size-9 rounded-full" />
+                    <div className="flex-1 space-y-2"><Bar className="h-3 w-24" /><Bar className="h-2.5 w-32" /></div>
                 </div>
             </aside>
 
-            {/* Main Content Skeleton */}
-            <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100/50">
-                {/* Header */}
-                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-                    <div className="h-5 w-48 bg-slate-100 rounded animate-pulse"></div>
-                    <div className="flex gap-3">
-                        <div className="h-9 w-24 bg-slate-100 rounded animate-pulse"></div>
-                        <div className="h-9 w-24 bg-slate-100 rounded animate-pulse"></div>
-                    </div>
+            <main className="flex h-full flex-1 flex-col overflow-hidden">
+                <header className="flex h-16 shrink-0 items-center justify-between border-b border-rule bg-white px-6">
+                    <Bar className="h-5 w-48" />
+                    <div className="flex gap-2"><Bar className="h-8 w-20 rounded-lg" /><Bar className="h-8 w-24 rounded-lg" /></div>
                 </header>
-
-                {/* Content Area */}
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Editor Column (Desktop) */}
-                    <div className="w-full md:w-[45%] h-full bg-white border-r border-slate-200 p-6 space-y-6 hidden md:block">
-                        <div className="h-8 w-1/3 bg-slate-100 rounded animate-pulse mb-8"></div>
-
-                        <div className="space-y-4">
-                            <div className="h-4 w-1/4 bg-slate-100 rounded animate-pulse"></div>
-                            <div className="h-10 w-full bg-slate-50 rounded animate-pulse"></div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="h-10 w-full bg-slate-50 rounded animate-pulse"></div>
-                            <div className="h-10 w-full bg-slate-50 rounded animate-pulse"></div>
-                        </div>
-
-                        <div className="h-32 w-full bg-slate-50 rounded animate-pulse mt-8"></div>
+                <div className="flex flex-1 overflow-hidden">
+                    <div className="hidden h-full w-[46%] space-y-6 border-r border-rule bg-white p-8 md:block">
+                        <Bar className="h-24 w-full rounded-2xl" />
+                        <Bar className="h-3 w-20" />
+                        <Bar className="h-10 w-full rounded-lg" />
+                        <div className="grid grid-cols-2 gap-4"><Bar className="h-10 w-full rounded-lg" /><Bar className="h-10 w-full rounded-lg" /></div>
                     </div>
-
-                    {/* Preview Column */}
-                    <div className="w-full md:w-[55%] h-full p-8 flex flex-col items-center justify-center">
-                        <div className="w-[210mm] h-[297mm] bg-white shadow-sm rounded-lg p-8 space-y-8 scale-75 origin-top">
-                            <div className="flex justify-between">
-                                <div className="h-16 w-16 bg-slate-100 rounded animate-pulse"></div>
-                                <div className="space-y-2 text-right">
-                                    <div className="h-4 w-32 bg-slate-100 rounded animate-pulse ml-auto"></div>
-                                    <div className="h-4 w-24 bg-slate-100 rounded animate-pulse ml-auto"></div>
-                                </div>
-                            </div>
-                            <div className="space-y-4 mt-12">
-                                <div className="h-4 w-full bg-slate-50 rounded animate-pulse"></div>
-                                <div className="h-4 w-full bg-slate-50 rounded animate-pulse"></div>
-                                <div className="h-4 w-2/3 bg-slate-50 rounded animate-pulse"></div>
-                            </div>
+                    <div className="flex flex-1 justify-center bg-desk p-8">
+                        <div className="aspect-[210/297] w-full max-w-md space-y-6 rounded-sm bg-white p-8 shadow-sheet">
+                            <div className="flex justify-between"><Bar className="h-10 w-24" /><Bar className="h-10 w-20" /></div>
+                            <Bar className="h-3 w-full" />
+                            <Bar className="h-3 w-full" />
+                            <Bar className="h-3 w-2/3" />
                         </div>
                     </div>
                 </div>

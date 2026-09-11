@@ -19,13 +19,13 @@ Application de facturation assistée par IA conçue pour les professionnels de s
 
 ## Stack technique
 
-Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase (base de données & auth) · Stripe · @react-pdf/renderer · Jest · Playwright
+Next.js 16 (App Router) · React 19 · TypeScript 6 · Tailwind CSS 4 · Supabase (base de données & auth) · Stripe · @react-pdf/renderer · Jest · Playwright
 
 ## Lancer le projet
 
 ### Prérequis
 
-- Node.js 18+
+- Node.js 22+ (Next.js 16 exige au minimum Node 20.9, les outils de test Node 22)
 - npm
 
 ### Installation
@@ -48,8 +48,24 @@ Application disponible sur [http://localhost:3000](http://localhost:3000).
 
 ```bash
 npm test           # tests unitaires
-npx playwright test  # tests end-to-end
+npx playwright test  # tests end-to-end (nécessite E2E_EMAIL et E2E_PASSWORD d’un compte de test)
 ```
+
+### Données de démonstration
+
+```bash
+npm run db:seed -- --remote
+```
+
+Crée (ou réinitialise) le compte `demo.soignant@example.com` avec des patients, dossiers et factures fictifs, puis affiche son mot de passe (`SEED_EMAIL` / `SEED_PASSWORD` pour les choisir). Sans `--remote`, le script refuse de tourner ailleurs que sur un Supabase local ; `-- --remote --delete` supprime le compte et ses données.
+
+### Mot de passe oublié
+
+Dans Supabase > Authentication > URL Configuration, ajoutez `http://localhost:3000/**` (et l’URL de production) aux *Redirect URLs* : le lien de réinitialisation passe par `/auth/callback?next=/nouveau-mot-de-passe`.
+
+### Icônes
+
+`public/icon.svg` est la source de toutes les icônes ; après modification, `npm run icons` régénère favicon, icônes Apple, Android et Windows.
 
 ## Déploiement
 

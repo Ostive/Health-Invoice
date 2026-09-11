@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Facturier Soignant</title>
+  <!-- Violet tile (stamp ink) -->
+  <rect width="512" height="512" rx="112" fill="#55309e"/>
+  <!-- Invoice sheet with a folded corner -->
+  <path d="M142 84H330L392 146V406A22 22 0 0 1 370 428H142A22 22 0 0 1 120 406V106A22 22 0 0 1 142 84Z" fill="#ffffff"/>
+  <path d="M330 84V124A22 22 0 0 0 352 146H392Z" fill="#d3c5ed"/>
+  <!-- Invoice lines -->
+  <rect x="160" y="148" width="128" height="22" rx="11" fill="#d3c5ed"/>
+  <rect x="160" y="194" width="168" height="22" rx="11" fill="#d3c5ed"/>
+  <rect x="160" y="240" width="88" height="22" rx="11" fill="#d3c5ed"/>
+  <!-- Round rubber stamp with a check, applied slightly askew -->
+  <g transform="rotate(-12 298 334)" fill="none" stroke="#55309e" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="298" cy="334" r="62" stroke-width="20"/>
+    <path d="M270 336L290 356L328 316" stroke-width="22"/>
+  </g>
+</svg>

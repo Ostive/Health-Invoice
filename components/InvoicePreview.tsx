@@ -125,7 +125,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, userPro
             {/* LATE Stamp (Only on first page) */}
             {index === 0 && invoice.status === InvoiceStatus.LATE && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
-                <div className="border-[8px] border-red-500/30 text-red-500/30 text-[120px] font-bold uppercase -rotate-45 p-10 rounded-3xl mix-blend-multiply select-none whitespace-nowrap">
+                <div className="border-8 border-red-500/30 text-red-500/30 text-[120px] font-bold uppercase -rotate-45 p-10 rounded-3xl mix-blend-multiply select-none whitespace-nowrap">
                   EN RETARD
                 </div>
               </div>
@@ -161,7 +161,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
     {/* Header */}
     <div className="flex flex-row justify-between items-start border-b border-slate-200 pb-6 mb-6">
       <div className="w-1/2">
-        <h1 className="text-2xl font-bold text-primary-700 mb-2">FACTURIER SOIGNANT</h1>
+        <h1 className="text-2xl font-bold text-doc-700 mb-2">FACTURIER SOIGNANT</h1>
         <p className="font-medium text-base text-slate-900">{profile.full_name}</p>
         <p className="text-slate-500 text-xs">{profile.specialty}</p>
         <p className="text-slate-500 text-xs whitespace-pre-line">{profile.address}</p>
@@ -181,7 +181,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
     </div>
 
     {/* Client Info */}
-    <div className="mb-8 pl-4 border-l-4 border-primary-100">
+    <div className="mb-8 pl-4 border-l-4 border-doc-100">
       <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Facturer à</h3>
       <div className="text-base font-medium text-slate-900">{invoice.client.name}</div>
       <div className="text-slate-600 text-sm whitespace-pre-line">{invoice.client.address}</div>
@@ -190,7 +190,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
     </div>
 
     {/* Items Table */}
-    <div className="flex-grow">
+    <div className="grow">
       <table className="w-full mb-8">
         <thead>
           <tr className="border-b border-slate-300">
@@ -225,7 +225,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
             <span className="text-slate-600">TVA (0%)</span>
             <span className="font-medium">{tva.toFixed(2)} €</span>
           </div>
-          <div className="flex justify-between py-3 text-lg font-bold text-primary-800">
+          <div className="flex justify-between py-3 text-lg font-bold text-doc-800">
             <span>Total à payer</span>
             <span>{(total + tva).toFixed(2)} €</span>
           </div>
@@ -267,7 +267,7 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
       </div>
     </div>
 
-    <div className="flex-grow">
+    <div className="grow">
       <table className="w-full mb-8 border-collapse border border-slate-800">
         <thead>
           <tr className="bg-slate-100">
@@ -335,7 +335,7 @@ const MinimalistTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, prof
       </div>
     </div>
 
-    <div className="flex-grow">
+    <div className="grow">
       <table className="w-full mb-8">
         <thead>
           <tr className="border-b border-black">
@@ -402,7 +402,7 @@ const ElegantTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
       </div>
     </div>
 
-    <div className="flex-grow">
+    <div className="grow">
       <table className="w-full mb-8">
         <thead>
           <tr>
@@ -460,7 +460,7 @@ const CorporateTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profi
       </div>
     </div>
 
-    <div className="p-[40px] flex-grow flex flex-col">
+    <div className="p-[40px] grow flex flex-col">
       <div className="grid grid-cols-2 gap-12 mb-12">
         <div>
           <h3 className="text-[10px] font-bold text-slate-900 uppercase mb-2 border-b-2 border-slate-900 pb-1 inline-block">Émetteur</h3>
@@ -475,7 +475,7 @@ const CorporateTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profi
         </div>
       </div>
 
-      <div className="flex-grow">
+      <div className="grow">
         <table className="w-full mb-8">
           <thead className="bg-slate-100">
             <tr>
@@ -505,7 +505,7 @@ const CorporateTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profi
               <span className="font-medium text-slate-600">Total HT</span>
               <span className="font-bold text-slate-900">{total.toFixed(2)} €</span>
             </div>
-            <div className="flex justify-between py-3 bg-slate-900 text-white px-3 mt-2 rounded-sm shadow-lg">
+            <div className="flex justify-between py-3 bg-slate-900 text-white px-3 mt-2 rounded-xs shadow-lg">
               <span className="font-bold uppercase tracking-wider">Net à payer</span>
               <span className="font-bold text-lg">{(total + tva).toFixed(2)} €</span>
             </div>

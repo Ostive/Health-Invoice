@@ -1,6 +1,178 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+  Facturier Soignant — design tokens
+  Papier froid, encre violette de tampon, vert carte Vitale, surligneur.
+*/
+
+@theme inline {
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Invoice document typefaces — loaded by app/dashboard/layout.tsx */
+  --font-serif: var(--font-merriweather), Georgia, serif;
+  --font-elegant: var(--font-playfair), Georgia, serif;
+  --font-corporate: var(--font-lato), ui-sans-serif, sans-serif;
+}
+
+@theme {
+  /* Paper & ink */
+  --color-paper: #f4f5f7;
+  --color-desk: #e7eaef;
+  --color-ink: #191b26;
+  --color-ink-soft: #545a6b;
+  --color-ink-faint: #8a90a0;
+  --color-rule: #dce0e6;
+  --color-rule-strong: #c5cbd4;
+
+  /* Encre violette — the rubber-stamp ink, used as the product accent */
+  --color-primary-50: #f4f1fa;
+  --color-primary-100: #e9e2f6;
+  --color-primary-200: #d3c5ed;
+  --color-primary-300: #b59ee0;
+  --color-primary-400: #9173ce;
+  --color-primary-500: #7050b9;
+  --color-primary-600: #55309e;
+  --color-primary-700: #472888;
+  --color-primary-800: #3a216f;
+  --color-primary-900: #2c1a54;
+  --color-primary-950: #1c1037;
+
+  /* Status inks */
+  --color-vitale-50: #ebf5ef;
+  --color-vitale-100: #d2eadb;
+  --color-vitale-500: #2f9464;
+  --color-vitale-600: #1e7b4f;
+  --color-vitale-700: #17623f;
+  --color-sent-50: #edf3fb;
+  --color-sent-100: #d6e4f6;
+  --color-sent-600: #2455a6;
+  --color-sent-700: #1c4585;
+  --color-surligneur: #ffe66b;
+
+  /* Document palette — mirrors lib/pdf-templates so the preview matches the PDF */
+  --color-doc-50: #eff6ff;
+  --color-doc-100: #dbeafe;
+  --color-doc-200: #bfdbfe;
+  --color-doc-500: #3b82f6;
+  --color-doc-600: #2563eb;
+  --color-doc-700: #1d4ed8;
+  --color-doc-800: #1e40af;
+  --color-doc-900: #1e3a8a;
+
+  --color-gold-400: #d4af37;
+  --color-gold-500: #c5a028;
+  --color-gold-600: #b08d1e;
+
+  --shadow-sheet: 0 1px 2px rgb(25 27 38 / 0.06), 0 12px 32px -12px rgb(25 27 38 / 0.22);
+  --shadow-pop: 0 1px 2px rgb(25 27 38 / 0.08), 0 16px 40px -12px rgb(25 27 38 / 0.28);
+
+  --animate-stamp: stamp 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes stamp {
+    0% {
+      opacity: 0;
+      transform: rotate(var(--stamp-rotate, 0deg)) scale(1.6);
+    }
+    55% {
+      opacity: 1;
+      transform: rotate(var(--stamp-rotate, 0deg)) scale(0.94);
+    }
+    100% {
+      opacity: 1;
+      transform: rotate(var(--stamp-rotate, 0deg)) scale(1);
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-rule);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: var(--color-surligneur);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+/* Headlines: Archivo pushed to its expanded width, like rubber-stamp type */
+@utility font-display {
+  font-family: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 125;
+  letter-spacing: -0.015em;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Worn-ink texture for stamps */
+@utility stamp-grain {
+  mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-size: 140px 140px;
+}
+
+/* Highlighter stroke — marks what the assistant understood */
+@utility surligne {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 22%,
+    color-mix(in srgb, var(--color-surligneur) 85%, transparent) 22%,
+    color-mix(in srgb, var(--color-surligneur) 85%, transparent) 90%,
+    transparent 90%
+  );
+  padding-inline: 0.12em;
+  border-radius: 0.15em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-strong) transparent;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* Print styles for the invoice */
 @media print {
@@ -15,7 +187,8 @@
   body * {
     visibility: hidden;
   }
-  #invoice-preview, #invoice-preview * {
+  #invoice-preview,
+  #invoice-preview * {
     visibility: visible;
   }
   #invoice-preview {
@@ -31,14 +204,5 @@
   }
   .no-print {
     display: none;
-  }
-}
-
-@layer base {
-  :root {
-    --font-inter: 'Inter', sans-serif;
-    --font-merriweather: 'Merriweather', serif;
-    --font-playfair: 'Playfair Display', serif;
-    --font-lato: 'Lato', sans-serif;
   }
 }

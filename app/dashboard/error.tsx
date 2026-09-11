@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Stamp } from '@/components/ui/stamp';
 
 export default function Error({
     error,
@@ -15,18 +16,14 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Une erreur est survenue</h2>
-            <p className="text-slate-600 mb-6 max-w-md">
-                Nous avons rencontré un problème lors du chargement de votre tableau de bord.
-                {process.env.NODE_ENV === 'development' && <span className="block mt-2 text-xs font-mono bg-slate-100 p-2 rounded">{error.message}</span>}
+        <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+            <Stamp tone="late" size="md" rotate={-4}>Erreur</Stamp>
+            <h2 className="mt-6 font-display text-xl font-semibold text-ink">Le tableau de bord n’a pas pu se charger</h2>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-soft">
+                Vos factures ne sont pas perdues. Réessayez, ou rechargez la page.
+                {process.env.NODE_ENV === 'development' && <span className="mt-3 block rounded-lg bg-white p-2 font-mono text-xs ring-1 ring-rule">{error.message}</span>}
             </p>
-            <div className="flex gap-3">
+            <div className="mt-6 flex gap-2">
                 <Button variant="outline" onClick={() => window.location.reload()}>
                     Recharger la page
                 </Button>

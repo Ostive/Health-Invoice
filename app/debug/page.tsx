@@ -33,7 +33,7 @@ export default function DebugPage() {
             <h1 className="text-2xl font-bold mb-4">Debug Profile</h1>
             {error && <pre className="text-red-500">{JSON.stringify(error, null, 2)}</pre>}
             {profile && (
-                <pre className="bg-slate-100 p-4 rounded">
+                <pre className="bg-slate-100 p-4 rounded-sm">
                     {JSON.stringify(profile, null, 2)}
                 </pre>
             )}

@@ -1,42 +1,39 @@
-import type { Metadata } from 'next'
-import { Inter, Merriweather, Playfair_Display, Lato } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Archivo, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({
+const archivo = Archivo({
   subsets: ['latin'],
-  variable: '--font-inter',
+  axes: ['wdth'],
+  variable: '--font-archivo',
   display: 'swap',
 })
 
-const merriweather = Merriweather({
-  weight: ['300', '400', '700'],
+const plexMono = IBM_Plex_Mono({
+  weight: ['400', '500', '600'],
   subsets: ['latin'],
-  variable: '--font-merriweather',
-  display: 'swap',
-})
-
-const playfair = Playfair_Display({
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  display: 'swap',
-})
-
-const lato = Lato({
-  weight: ['300', '400', '700'],
-  subsets: ['latin'],
-  variable: '--font-lato',
+  variable: '--font-plex-mono',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
-  title: 'Facturier Soignant AI',
-  description: 'Facturation intelligente pour infirmiers et kinés libéraux',
+  title: {
+    default: 'Facturier Soignant — la facturation dictée des soignants libéraux',
+    template: '%s · Facturier Soignant',
+  },
+  description: 'Dictez vos actes, obtenez une facture conforme. Pour infirmiers, kinés et médecins libéraux.',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
     apple: '/apple-icon.png',
   },
+  manifest: '/manifest.json',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#f4f5f7',
 }
 
 export default function RootLayout({
@@ -45,8 +42,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${merriweather.variable} ${playfair.variable} ${lato.variable}`}>
-      <body className="bg-slate-50 text-slate-900 antialiased font-sans h-screen flex flex-col">
+    <html lang="fr" className={`${archivo.variable} ${plexMono.variable}`}>
+      <body className="flex h-dvh flex-col bg-paper font-sans text-ink antialiased">
         {children}
       </body>
     </html>

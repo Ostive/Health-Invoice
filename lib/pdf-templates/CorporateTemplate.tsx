@@ -260,7 +260,7 @@ export const CorporateTemplate: React.FC<CorporateTemplateProps> = ({ invoice, p
               <Text style={[styles.colTotal, styles.headerText]}>Total</Text>
             </View>
             {safeItems.map((item, idx) => (
-              <View key={item.id || Math.random()} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}>
+              <View key={item.id || idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}>
                 <Text style={styles.colDescription}>{safeText(item.description)}</Text>
                 <Text style={styles.colQty}>{safeText(item.quantity)}</Text>
                 <Text style={styles.colPrice}>{formatCurrency(item.unitPrice)}</Text>

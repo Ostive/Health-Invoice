@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import './globals.css';
 
+// Replaces the root layout when it crashes, so it must render its own <html> and <body>
 export default function GlobalError({
     error,
     reset,
@@ -15,21 +16,19 @@ export default function GlobalError({
     }, [error]);
 
     return (
-        <html>
-            <body>
-                <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
-                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                        <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 mb-2">Erreur Critique</h1>
-                    <p className="text-slate-600 mb-8 max-w-md">
-                        Une erreur inattendue s'est produite. Notre équipe a été notifiée.
+        <html lang="fr">
+            <body className="bg-paper font-sans text-ink antialiased">
+                <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center">
+                    <h1 className="text-2xl font-semibold">L’application n’a pas pu démarrer</h1>
+                    <p className="mt-3 max-w-md leading-relaxed text-ink-soft">
+                        Rechargez la page. Si le problème persiste, écrivez-nous à hello@facturier-soignant.fr.
                     </p>
-                    <Button onClick={() => reset()} className="min-w-[120px]">
+                    <button
+                        onClick={() => reset()}
+                        className="mt-8 rounded-lg bg-primary-600 px-6 py-3 text-[15px] font-medium text-white hover:bg-primary-700"
+                    >
                         Réessayer
-                    </Button>
+                    </button>
                 </div>
             </body>
         </html>

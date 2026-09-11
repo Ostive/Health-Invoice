@@ -5,7 +5,13 @@ import { type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next')
   const origin = requestUrl.origin
+
+  // Only same-site relative paths are accepted, to avoid open redirects
+  const destination = next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')
+    ? next
+    : '/dashboard'
 
   if (code) {
     const supabase = await createClient()
@@ -13,10 +19,9 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect(`${origin}/?error=auth_callback_error`)
+      return NextResponse.redirect(`${origin}/connexion?erreur=lien`)
     }
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(`${origin}/dashboard`)
+  return NextResponse.redirect(`${origin}${destination}`)
 }

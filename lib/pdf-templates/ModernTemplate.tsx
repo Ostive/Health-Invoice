@@ -275,8 +275,8 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ invoice, profile
             <Text style={[styles.colPrice, styles.headerText]}>Prix Unit.</Text>
             <Text style={[styles.colTotal, styles.headerText]}>Total</Text>
           </View>
-          {safeItems.map((item) => (
-            <View key={item.id || Math.random()} style={styles.tableRow}>
+          {safeItems.map((item, index) => (
+            <View key={item.id || index} style={styles.tableRow}>
               <Text style={styles.colDescription}>{safeText(item.description)}</Text>
               <Text style={styles.colQty}>{safeText(item.quantity)}</Text>
               <Text style={styles.colPrice}>{formatCurrency(item.unitPrice)}</Text>

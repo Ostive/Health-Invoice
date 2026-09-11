@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Stamp } from '@/components/ui/stamp'
 
 export default function Error({
     error,
@@ -15,33 +16,26 @@ export default function Error({
     }, [error])
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 text-center">
-            <div className="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-red-500/10 animate-in zoom-in duration-300">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
+        <div className="flex min-h-dvh flex-col items-center justify-center bg-paper px-4 text-center">
+            <Stamp tone="late" size="lg" rotate={-6}>Erreur</Stamp>
 
-            <h2 className="text-3xl font-bold text-slate-900 mb-3">Oups ! Une erreur est survenue</h2>
-
-            <p className="text-slate-600 max-w-md mb-8 leading-relaxed">
-                Ne vous inquiétez pas, c'est probablement temporaire. Nous avons été notifiés du problème.
+            <h1 className="mt-10 font-display text-2xl font-semibold text-ink">Cette page n’a pas pu s’afficher</h1>
+            <p className="mt-3 max-w-md leading-relaxed text-ink-soft">
+                Un problème technique a interrompu le chargement. Réessayez ; si le problème persiste, écrivez-nous à hello@facturier-soignant.fr.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={() => reset()} size="lg" className="shadow-lg shadow-primary-500/20">
-                    Réessayer
-                </Button>
-                <Button onClick={() => window.location.href = '/dashboard'} variant="outline" size="lg">
-                    Retour au tableau de bord
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => reset()} size="lg">Réessayer</Button>
+                <Button onClick={() => { window.location.href = '/dashboard' }} variant="outline" size="lg">
+                    Aller au tableau de bord
                 </Button>
             </div>
 
             {process.env.NODE_ENV === 'development' && (
-                <div className="mt-12 p-4 bg-red-50 border border-red-100 rounded-lg max-w-2xl w-full text-left overflow-auto max-h-64">
-                    <p className="text-xs font-bold text-red-800 mb-2 uppercase tracking-wider">Détails de l'erreur (Dev only)</p>
-                    <pre className="text-xs text-red-600 font-mono whitespace-pre-wrap">{error.message}</pre>
-                    {error.digest && <p className="text-xs text-red-400 mt-2">Digest: {error.digest}</p>}
+                <div className="mt-12 max-h-64 w-full max-w-2xl overflow-auto rounded-xl border border-red-200 bg-white p-4 text-left">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-red-800">Détails (développement)</p>
+                    <pre className="whitespace-pre-wrap font-mono text-xs text-red-700">{error.message}</pre>
+                    {error.digest && <p className="mt-2 font-mono text-xs text-ink-faint">Digest : {error.digest}</p>}
                 </div>
             )}
         </div>

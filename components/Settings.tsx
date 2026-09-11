@@ -1,22 +1,65 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserProfile } from '../types';
 import { Button } from './ui/button';
-import { manageSubscription, subscribeToPro, reactivateSubscription } from '../services/stripeService';
-
-import { ToastType } from './ui/toast';
 import { Modal } from './ui/modal';
-import { useRouter } from 'next/navigation';
+import { Field, Input, Textarea } from './ui/input';
+import { Icon, IconName } from './ui/icon';
+import { Stamp } from './ui/stamp';
+import { ToastType } from './ui/toast';
+import { manageSubscription, subscribeToPro, reactivateSubscription } from '../services/stripeService';
+import { cn } from '@/lib/cn';
+import { errorMessage } from '@/lib/errors';
+
+type SettingsSection = 'general' | 'subscription' | 'security';
 
 interface SettingsProps {
   profile: UserProfile | null;
   onUpdate: () => void;
   onClose: () => void;
   onShowToast: (message: string, type: ToastType) => void;
-  activeSection: 'general' | 'subscription' | 'security';
-  onSectionChange: (section: 'general' | 'subscription' | 'security') => void;
+  activeSection: SettingsSection;
+  onSectionChange: (section: SettingsSection) => void;
 }
+
+const SECTIONS: { id: SettingsSection; label: string; icon: IconName }[] = [
+  { id: 'general', label: 'Profil et coordonnées', icon: 'user' },
+  { id: 'subscription', label: 'Abonnement', icon: 'card' },
+  { id: 'security', label: 'Sécurité et données', icon: 'lock' },
+];
+
+const FREE_FEATURES = ['3 factures par mois', 'Modèles standards', 'Export PDF', 'Support par email'];
+const PRO_FEATURES = [
+  { text: 'Factures illimitées', bold: true },
+  { text: 'Dictée et assistant illimités', bold: true },
+  { text: 'Tous les modèles de facture', bold: false },
+  { text: 'Support prioritaire', bold: false },
+  { text: 'Dossiers illimités', bold: false },
+  { text: 'Export comptable', bold: false },
+];
+
+const SUBSCRIPTION_FAQ = [
+  { q: 'Puis-je annuler à tout moment ?', a: 'Oui. Vous annulez depuis cette page ; l’accès Professionnel reste actif jusqu’à la fin de la période payée.' },
+  { q: 'Comment fonctionne le paiement ?', a: 'Le paiement est traité par Stripe. Nous ne stockons aucune donnée bancaire.' },
+  { q: 'Où trouver mes factures d’abonnement ?', a: 'Chaque paiement génère une facture envoyée par email. Vous les retrouvez aussi dans « Gérer l’abonnement ».' },
+  { q: 'Que comprend la dictée illimitée ?', a: 'Vous dictez et remplissez autant de factures que nécessaire, sans quota journalier.' },
+];
+
+const Card = ({ title, description, children, className }: { title?: string; description?: string; children: React.ReactNode; className?: string }) => (
+  <section className={cn('overflow-hidden rounded-2xl border border-rule bg-white', className)}>
+    {title && (
+      <div className="border-b border-rule px-5 py-4 sm:px-6">
+        <h3 className="font-display text-[15px] font-semibold text-ink">{title}</h3>
+        {description && <p className="mt-0.5 text-[13px] text-ink-soft">{description}</p>}
+      </div>
+    )}
+    <div className="p-5 sm:p-6">{children}</div>
+  </section>
+);
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, onShowToast, activeSection, onSectionChange }) => {
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
@@ -75,10 +118,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
       }
 
       onUpdate();
-      onShowToast('Profil mis à jour avec succès !', 'success');
-    } catch (err: any) {
+      onShowToast('Profil enregistré', 'success');
+    } catch (err) {
       console.error(err);
-      onShowToast("Erreur lors de la sauvegarde : " + err.message, 'error');
+      onShowToast("Le profil n'a pas pu être enregistré : " + errorMessage(err), 'error');
     } finally {
       setIsSaving(false);
     }
@@ -97,446 +140,278 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
         throw new Error('Erreur lors de la suppression du compte');
       }
 
-      onShowToast('Compte supprimé avec succès. Au revoir !', 'success');
+      onShowToast('Compte supprimé', 'success');
       router.push('/');
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      onShowToast("Erreur : " + err.message, 'error');
+      onShowToast("Le compte n'a pas pu être supprimé : " + errorMessage(err), 'error');
       setIsDeleting(false);
     }
   };
 
+  const handleSubscriptionAction = async () => {
+    if (!profile?.id) return;
+    if (profile.cancel_at_period_end) {
+      setIsSaving(true);
+      try {
+        await reactivateSubscription(profile.id);
+        onUpdate();
+        onShowToast('Abonnement réactivé', 'success');
+      } catch (err) {
+        onShowToast("L'abonnement n'a pas pu être réactivé : " + errorMessage(err), 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      manageSubscription(profile.id);
+    }
+  };
+
+  const textField = (field: keyof UserProfile, label: string, props: React.ComponentProps<'input'> = {}) => (
+    <Field label={label} htmlFor={`settings-${field}`}>
+      <Input
+        id={`settings-${field}`}
+        type="text"
+        value={(formData[field] as string) || ''}
+        onChange={(e) => handleChange(field, e.target.value)}
+        disabled={isSaving}
+        {...props}
+      />
+    </Field>
+  );
+
   return (
-    <div className="h-full flex flex-col bg-slate-50 w-full animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex justify-between items-center shrink-0 sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button onClick={onClose} className="md:hidden text-slate-500 hover:text-slate-700 p-1">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+    <div className="flex h-full w-full flex-col animate-in fade-in duration-300">
+      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-rule bg-white px-3 md:px-6">
+        <div className="flex items-center gap-1">
+          <button onClick={onClose} aria-label="Retour aux factures" className="rounded-lg p-2 text-ink-soft transition-colors hover:bg-paper md:hidden">
+            <Icon name="chevronLeft" className="size-5" />
           </button>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Paramètres</h2>
-          </div>
+          <h1 className="font-display text-base font-semibold text-ink">Paramètres</h1>
         </div>
-        <div className="flex gap-2 md:gap-3">
-          <Button variant="outline" size="sm" onClick={onUpdate} title="Rafraîchir les données" className="px-2 md:px-3">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onUpdate} aria-label="Actualiser les informations" title="Actualiser">
+            <Icon name="refresh" />
           </Button>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving} className="hidden md:flex">Fermer</Button>
-
-          {/* Desktop Save */}
-          <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving} className="hidden md:flex px-6 shadow-sm">Enregistrer</Button>
-
-          {/* Mobile Save Icon */}
-          <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving} className="md:hidden px-3 shadow-sm">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" /></svg>
-          </Button>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving} className="hidden md:inline-flex">Fermer</Button>
+          {activeSection === 'general' && (
+            <Button size="sm" onClick={handleSave} isLoading={isSaving} disabled={!hasChanges || isSaving}>Enregistrer</Button>
+          )}
         </div>
-      </div>
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden max-w-7xl mx-auto w-full">
-        {/* Sidebar Navigation */}
-        <aside className="w-full md:w-64 bg-white md:bg-transparent border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col md:py-8 shrink-0 overflow-x-auto md:overflow-visible sticky top-0 z-20 [&::-webkit-scrollbar]:hidden">
-          <nav className="flex md:flex-col gap-2 p-2 md:px-4 w-full min-w-max">
-            <div className="px-3 mb-2 hidden md:block">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Compte</span>
-            </div>
+      </header>
 
-            <button
-              onClick={() => onSectionChange('general')}
-              disabled={isSaving}
-              className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${activeSection === 'general'
-                ? 'bg-white shadow-sm text-primary-700 ring-1 ring-slate-200'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-            >
-              <div className={`p-1 rounded ${activeSection === 'general' ? 'bg-primary-50 text-primary-600' : 'text-slate-400'}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              </div>
-              Profil & Coordonnées
-            </button>
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden md:flex-row">
+        <nav aria-label="Rubriques des paramètres" className="shrink-0 overflow-x-auto border-b border-rule bg-white scrollbar-none md:w-64 md:overflow-visible md:border-b-0 md:bg-transparent md:py-8">
+          <ul className="flex min-w-max gap-1 p-2 md:min-w-0 md:flex-col md:px-4">
+            {SECTIONS.map(section => {
+              const isActive = activeSection === section.id;
+              return (
+                <li key={section.id}>
+                  <button
+                    onClick={() => onSectionChange(section.id)}
+                    disabled={isSaving}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={cn(
+                      'flex w-full items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-50',
+                      isActive ? 'bg-white font-medium text-ink ring-1 ring-rule md:shadow-[0_1px_2px_rgb(25_27_38/0.06)]' : 'text-ink-soft hover:bg-ink/5 hover:text-ink',
+                    )}
+                  >
+                    <Icon name={section.icon} className={isActive ? 'text-primary-600' : 'text-ink-faint'} />
+                    {section.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-            <button
-              onClick={() => onSectionChange('subscription')}
-              disabled={isSaving}
-              className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${activeSection === 'subscription'
-                ? 'bg-white shadow-sm text-primary-700 ring-1 ring-slate-200'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-            >
-              <div className={`p-1 rounded ${activeSection === 'subscription' ? 'bg-primary-50 text-primary-600' : 'text-slate-400'}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-              </div>
-              Abonnement
-            </button>
-
-            <button
-              onClick={() => onSectionChange('security')}
-              disabled={isSaving}
-              className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${activeSection === 'security'
-                ? 'bg-white shadow-sm text-primary-700 ring-1 ring-slate-200'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-            >
-              <div className={`p-1 rounded ${activeSection === 'security' ? 'bg-primary-50 text-primary-600' : 'text-slate-400'}`}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              </div>
-              Sécurité
-            </button>
-          </nav>
-        </aside>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scroll-smooth">
-          <div className="max-w-3xl mx-auto space-y-8 pb-20">
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8 lg:px-12">
+          <div className="mx-auto max-w-3xl space-y-6 pb-20">
 
             {activeSection === 'general' && (
-              <>
+              <form onSubmit={handleSave} className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Informations Générales</h3>
-                  <p className="text-slate-500 text-sm">Gérez les informations qui apparaîtront sur vos documents.</p>
+                  <h2 className="font-display text-xl font-semibold text-ink">Profil et coordonnées</h2>
+                  <p className="mt-1 text-sm text-ink-soft">Ces informations figurent en en-tête de vos factures.</p>
                 </div>
 
-                {/* Identity Section */}
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h4 className="font-semibold text-slate-800 text-sm">Identité Professionnelle</h4>
+                <Card title="Identité professionnelle">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    {textField('full_name', 'Nom complet ou raison sociale', { placeholder: 'Dr Martin Dupont', autoComplete: 'name' })}
+                    {textField('specialty', 'Spécialité', { placeholder: 'Infirmier libéral' })}
+                    {textField('adeli', 'N° ADELI / RPPS', { placeholder: '75 1 23456 7', className: 'font-mono' })}
+                    {textField('siret', 'SIRET', { placeholder: '123 456 789 00012', className: 'font-mono', inputMode: 'numeric' })}
                   </div>
-                  <div className="p-6 grid grid-cols-1 gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nom complet / Raison sociale</label>
-                        <input
-                          type="text"
-                          value={formData.full_name || ''}
-                          onChange={(e) => handleChange('full_name', e.target.value)}
-                          placeholder="Dr. Martin Dupont"
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">Spécialité</label>
-                        <input
-                          type="text"
-                          value={formData.specialty || ''}
-                          onChange={(e) => handleChange('specialty', e.target.value)}
-                          placeholder="Infirmier Libéral"
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm resize-none disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">Téléphone</label>
-                        <input
-                          type="tel"
-                          value={formData.phone || ''}
-                          onChange={(e) => handleChange('phone', e.target.value)}
-                          placeholder="01 23 45 67 89"
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">N° ADELI / RPPS</label>
-                        <input
-                          type="text"
-                          value={formData.adeli || ''}
-                          onChange={(e) => handleChange('adeli', e.target.value)}
-                          placeholder="123456789"
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">SIRET</label>
-                        <input
-                          type="text"
-                          value={formData.siret || ''}
-                          onChange={(e) => handleChange('siret', e.target.value)}
-                          placeholder="123 456 789 00012"
-                          disabled={isSaving}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-                      </div>
-                    </div>
+                </Card>
+
+                <Card title="Cabinet">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <Field label="Adresse du cabinet" htmlFor="settings-address" className="md:col-span-2">
+                      <Textarea
+                        id="settings-address"
+                        rows={2}
+                        value={formData.address || ''}
+                        onChange={(e) => handleChange('address', e.target.value)}
+                        placeholder="123 avenue de la République, 75011 Paris"
+                        disabled={isSaving}
+                      />
+                    </Field>
+                    {textField('phone', 'Téléphone', { type: 'tel', placeholder: '01 23 45 67 89', autoComplete: 'tel' })}
                   </div>
-                  <div className="mt-6 pt-6 border-t border-slate-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h5 className="text-sm font-semibold text-slate-800">Assujetti à la TVA ?</h5>
-                        <p className="text-xs text-slate-500 mt-1">Cochez cette case si vous devez facturer la TVA.</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={formData.is_vat_applicable || false}
-                          onChange={(e) => handleChange('is_vat_applicable', e.target.checked)}
-                          disabled={isSaving}
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                      </label>
-                    </div>
-                  </div>
-                </section>
-              </>
+                </Card>
+
+                <Card>
+                  <label htmlFor="settings-vat" className="flex cursor-pointer items-center justify-between gap-6">
+                    <span>
+                      <span className="block text-sm font-medium text-ink">Facturer la TVA</span>
+                      <span className="mt-0.5 block text-[13px] text-ink-soft">La plupart des soins sont exonérés (art. 261 du CGI). Activez uniquement si vous y êtes assujetti.</span>
+                    </span>
+                    <span className="relative inline-flex shrink-0">
+                      <input
+                        id="settings-vat"
+                        type="checkbox"
+                        role="switch"
+                        className="peer sr-only"
+                        checked={formData.is_vat_applicable || false}
+                        onChange={(e) => handleChange('is_vat_applicable', e.target.checked)}
+                        disabled={isSaving}
+                      />
+                      <span className="h-6 w-11 rounded-full bg-rule-strong transition-colors peer-checked:bg-primary-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-600" />
+                      <span className="absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                    </span>
+                  </label>
+                </Card>
+              </form>
             )}
 
             {activeSection === 'subscription' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center max-w-2xl mx-auto mb-8">
-                  <h3 className="text-3xl font-bold text-slate-900 mb-3">Gérez votre abonnement</h3>
-                  <p className="text-slate-500 text-lg">Choisissez le plan adapté à votre activité et simplifiez votre facturation.</p>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-display text-xl font-semibold text-ink">Abonnement</h2>
+                  <p className="mt-1 text-sm text-ink-soft">Votre offre actuelle et vos options.</p>
                 </div>
 
-                {/* Subscription Ended Alert */}
                 {!profile?.is_pro && profile?.stripe_customer_id && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-8">
-                    <div className="p-1 bg-amber-100 rounded-full text-amber-600 shrink-0">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    </div>
+                  <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <Icon name="alert" className="mt-0.5 size-5 text-amber-600" />
                     <div>
-                      <h4 className="font-bold text-amber-800">Votre abonnement a pris fin</h4>
-                      <p className="text-amber-700 text-sm mt-1">
-                        Votre accès PRO est terminé. Réabonnez-vous ci-dessous pour retrouver immédiatement tous vos avantages et votre historique illimité.
-                      </p>
+                      <h4 className="text-sm font-semibold text-amber-900">Votre abonnement Professionnel est terminé</h4>
+                      <p className="mt-1 text-sm text-amber-800">Réabonnez-vous pour retrouver les factures illimitées. Votre historique est conservé.</p>
                     </div>
                   </div>
                 )}
 
-                {/* Current Subscription Status Card - Only for PRO users */}
                 {profile?.is_pro && (
-                  <div className={`bg-gradient-to-br ${profile.cancel_at_period_end ? 'from-orange-50 to-amber-50 border-orange-200' : 'from-emerald-50 to-teal-50 border-emerald-200'} border rounded-2xl p-6 shadow-sm mb-8 relative overflow-hidden`}>
-                    <div className={`absolute top-0 right-0 w-32 h-32 ${profile.cancel_at_period_end ? 'bg-orange-100/50' : 'bg-emerald-100/50'} rounded-full blur-3xl -translate-y-1/2 translate-x-1/2`}></div>
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-14 h-14 bg-gradient-to-br ${profile.cancel_at_period_end ? 'from-orange-500 to-amber-600 shadow-orange-500/20' : 'from-emerald-500 to-teal-600 shadow-emerald-500/20'} rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white`}>
-                          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <Card>
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-display text-lg font-semibold text-ink">Offre Professionnel</h3>
+                          {profile.cancel_at_period_end
+                            ? <Stamp tone="late" rotate={-2}>Se termine</Stamp>
+                            : <Stamp tone="paid" rotate={-2}>Active</Stamp>}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-xl font-bold text-slate-900">Plan Professionnel</h4>
-                            {profile.cancel_at_period_end ? (
-                              <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide border border-orange-200">Se termine bientôt</span>
-                            ) : (
-                              <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide border border-emerald-200">Actif</span>
-                            )}
-                          </div>
-                          <p className="text-slate-600 mb-2">
-                            {profile.cancel_at_period_end ? 'Votre accès prendra fin le ' : 'Renouvellement le '}
-                            <strong>
-                              {profile.current_period_end
-                                ? new Date(profile.current_period_end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                              }
-                            </strong>
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-slate-500">
-                            <span className={`flex items-center gap-1.5 ${profile.cancel_at_period_end ? 'text-orange-600' : 'text-emerald-500'}`}>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                              29€/mois
-                            </span>
-                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                            <span className={`flex items-center gap-1.5 ${profile.cancel_at_period_end ? 'text-orange-600' : 'text-emerald-500'}`}>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                              {profile.cancel_at_period_end ? 'Annulation programmée' : 'Annulable à tout moment'}
-                            </span>
-                          </div>
-                        </div>
+                        <p className="mt-2 text-sm text-ink-soft">
+                          {profile.current_period_end
+                            ? <>{profile.cancel_at_period_end ? 'Accès jusqu’au ' : 'Prochain renouvellement le '}<strong className="font-medium text-ink">{formatDate(profile.current_period_end)}</strong></>
+                            : profile.cancel_at_period_end ? 'Annulation programmée à la fin de la période en cours.' : 'Renouvellement mensuel.'}
+                        </p>
+                        <p className="mt-1 font-mono text-[13px] text-ink-soft">29,00 € / mois</p>
                       </div>
-                      <Button
-                        onClick={async () => {
-                          if (!profile?.id) return;
-                          if (profile.cancel_at_period_end) {
-                            setIsSaving(true);
-                            try {
-                              await reactivateSubscription(profile.id);
-                              onUpdate();
-                              onShowToast('Abonnement réactivé avec succès !', 'success');
-                            } catch (err: any) {
-                              onShowToast("Erreur lors de la réactivation : " + err.message, 'error');
-                            } finally {
-                              setIsSaving(false);
-                            }
-                          } else {
-                            manageSubscription(profile.id);
-                          }
-                        }}
-                        variant="outline"
-                        className={`bg-white shadow-sm w-full md:w-auto justify-center ${profile.cancel_at_period_end ? 'border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'}`}
-                        disabled={isSaving}
-                      >
-                        {profile.cancel_at_period_end ? 'Réactiver l\'abonnement' : 'Gérer l\'abonnement'}
+                      <Button onClick={handleSubscriptionAction} variant="outline" disabled={isSaving} className="md:w-auto">
+                        {profile.cancel_at_period_end ? 'Réactiver l’abonnement' : 'Gérer l’abonnement'}
                       </Button>
                     </div>
-                  </div>
+                  </Card>
                 )}
 
-                <div className="grid md:grid-cols-2 gap-8 items-stretch">
-                  {/* Free Plan Card */}
-                  <div className={`relative rounded-3xl border transition-all duration-300 flex flex-col ${profile?.is_pro ? 'border-slate-200 bg-white hover:border-slate-300' : 'border-slate-200 bg-slate-50/50 opacity-75 hover:opacity-100'}`}>
-                    <div className="p-8 flex-1">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="text-xl font-bold text-slate-900">Découverte</h4>
-                          <p className="text-slate-500 text-sm mt-1">Pour tester l'application</p>
-                        </div>
-                      </div>
-                      <div className="mb-6 flex items-baseline">
-                        <span className="text-4xl font-extrabold text-slate-900">0€</span>
-                        <span className="text-slate-500 ml-2 font-medium">/ mois</span>
-                      </div>
-                      <hr className="border-slate-100 mb-6" />
-                      <ul className="space-y-4 mb-8">
-                        {[
-                          '3 factures par mois',
-                          'Modèles standards',
-                          'Export PDF basique',
-                          'Support par email'
-                        ].map((feature, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                            <div className="p-0.5 rounded-full bg-slate-100 text-slate-500 mt-0.5">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+                <div className="grid items-stretch gap-4 md:grid-cols-2">
+                  <article className="flex flex-col rounded-2xl border border-rule bg-paper p-6">
+                    <h4 className="font-display text-lg font-semibold text-ink">Découverte</h4>
+                    <p className="mt-1 text-sm text-ink-soft">Pour prendre l’outil en main.</p>
+                    <p className="mt-5 flex items-baseline gap-1"><span className="font-display text-4xl font-semibold tabular text-ink">0 €</span><span className="text-sm text-ink-soft">/ mois</span></p>
+                    <ul className="mt-6 space-y-2.5 border-t border-rule pt-5 text-sm text-ink">
+                      {FREE_FEATURES.map(feature => (
+                        <li key={feature} className="flex gap-2.5"><Icon name="check" className="mt-0.5 text-ink-faint" strokeWidth={2.5} />{feature}</li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-6">
+                      <Button variant="outline" className="w-full" disabled>{profile?.is_pro ? 'Incluse' : 'Votre offre actuelle'}</Button>
                     </div>
-                    <div className="p-8 pt-0 mt-auto">
-                      {profile?.is_pro ? (
-                        <Button variant="outline" className="w-full justify-center border-slate-200 text-slate-400 cursor-not-allowed" disabled>Inclus</Button>
-                      ) : (
-                        <Button variant="outline" className="w-full justify-center border-slate-300 text-slate-700 bg-white hover:bg-slate-50" disabled>Votre plan actuel</Button>
-                      )}
-                    </div>
-                  </div>
+                  </article>
 
-                  {/* Pro Plan Card */}
-                  <div className={`relative rounded-3xl border-2 flex flex-col shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${profile?.is_pro ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-primary-600 bg-white ring-4 ring-primary-600/10'}`}>
-                    {!profile?.is_pro && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg shadow-primary-500/30 uppercase tracking-wider z-10">
-                        Recommandé
-                      </div>
-                    )}
-                    <div className="p-8 flex-1 relative overflow-hidden">
-                      {/* Decorative background blob */}
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none"></div>
-
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                        <div>
-                          <h4 className="text-xl font-bold text-slate-900">Professionnel</h4>
-                          <p className="text-slate-500 text-sm mt-1">Pour les experts de santé</p>
-                        </div>
-                        <div className={`p-2 rounded-xl ${profile?.is_pro ? 'bg-emerald-100 text-emerald-600' : 'bg-primary-100 text-primary-600'}`}>
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                        </div>
-                      </div>
-                      <div className="mb-6 flex items-baseline relative z-10">
-                        <span className="text-4xl font-extrabold text-slate-900">29€</span>
-                        <span className="text-slate-500 ml-2 font-medium">/ mois</span>
-                      </div>
-                      <hr className="border-slate-100 mb-6 relative z-10" />
-                      <ul className="space-y-4 mb-8 relative z-10">
-                        {[
-                          { text: 'Factures illimitées', bold: true },
-                          { text: 'Assistant IA illimité', bold: true },
-                          { text: 'Modèles Premium & Personnalisation', bold: false },
-                          { text: 'Support prioritaire 24/7', bold: false },
-                          { text: 'Gestion multi-dossiers', bold: false },
-                          { text: 'Export comptable', bold: false },
-                        ].map((feature, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                            <div className={`p-0.5 rounded-full mt-0.5 ${profile?.is_pro ? 'bg-emerald-100 text-emerald-600' : 'bg-primary-100 text-primary-600'}`}>
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <span className={feature.bold ? 'font-bold text-slate-900' : ''}>{feature.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="p-8 pt-0 mt-auto relative z-10">
+                  <article className={cn('relative flex flex-col rounded-2xl border-2 bg-white p-6', profile?.is_pro ? 'border-vitale-600' : 'border-primary-600 shadow-sheet')}>
+                    {!profile?.is_pro && <Stamp tone="ink" size="md" rotate={5} className="absolute -top-3.5 right-5 bg-white">Recommandé</Stamp>}
+                    <h4 className="font-display text-lg font-semibold text-ink">Professionnel</h4>
+                    <p className="mt-1 text-sm text-ink-soft">Pour les soignants en activité.</p>
+                    <p className="mt-5 flex items-baseline gap-1"><span className="font-display text-4xl font-semibold tabular text-ink">29 €</span><span className="text-sm text-ink-soft">/ mois</span></p>
+                    <ul className="mt-6 space-y-2.5 border-t border-rule pt-5 text-sm text-ink">
+                      {PRO_FEATURES.map(feature => (
+                        <li key={feature.text} className="flex gap-2.5">
+                          <Icon name="check" className={cn('mt-0.5', profile?.is_pro ? 'text-vitale-600' : 'text-primary-600')} strokeWidth={2.5} />
+                          <span className={feature.bold ? 'font-semibold' : undefined}>{feature.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-6">
                       {profile?.is_pro ? (
-                        <div className="text-center bg-emerald-50 rounded-xl p-4 border border-emerald-100">
-                          <p className="text-emerald-800 font-semibold text-sm flex items-center justify-center gap-2">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            Vous êtes PRO
-                          </p>
-                        </div>
+                        <p className="flex items-center justify-center gap-2 rounded-lg bg-vitale-50 py-2.5 text-sm font-medium text-vitale-700">
+                          <Icon name="check" strokeWidth={2.5} />Votre offre actuelle
+                        </p>
                       ) : (
                         <>
-                          <Button
-                            onClick={() => profile?.id && subscribeToPro(profile.id, profile?.email)}
-                            className="w-full justify-center py-4 text-base shadow-lg hover:shadow-primary-500/25 transition-all bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 border-none"
-                            disabled={isSaving}
-                          >
-                            Passer à PRO
+                          <Button onClick={() => profile?.id && subscribeToPro(profile.id, profile?.email)} className="w-full" size="lg" disabled={isSaving}>
+                            Passer à l’offre Professionnel
                           </Button>
-                          <p className="text-center text-xs text-slate-400 mt-4 flex items-center justify-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                            Paiement sécurisé via Stripe
+                          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-faint">
+                            <Icon name="lock" className="size-3" />Paiement sécurisé par Stripe
                           </p>
                         </>
                       )}
                     </div>
-                  </div>
+                  </article>
                 </div>
 
-                {/* FAQ Section */}
-                <div className="mt-16 pt-10 border-t border-slate-200">
-                  <h4 className="text-xl font-bold text-slate-900 mb-8 text-center">Questions Fréquentes</h4>
-                  <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-                    {[
-                      { q: "Puis-je annuler à tout moment ?", a: "Oui, absolument. Vous pouvez annuler votre abonnement à tout moment depuis votre espace. L'accès PRO restera actif jusqu'à la fin de la période facturée." },
-                      { q: "Comment fonctionne le paiement ?", a: "Les paiements sont sécurisés et traités par Stripe, le leader mondial du paiement en ligne. Nous ne stockons aucune information bancaire." },
-                      { q: "J'ai besoin d'une facture", a: "Une facture est générée automatiquement à chaque paiement et envoyée par email. Vous pouvez aussi les retrouver dans votre espace de gestion d'abonnement." },
-                      { q: "Qu'est-ce que l'IA illimitée ?", a: "Le plan PRO vous donne un accès illimité à notre assistant IA pour générer, analyser et optimiser vos factures sans aucune restriction journalière." }
-                    ].map((item, i) => (
-                      <div key={i}>
-                        <h5 className="font-bold text-slate-900 mb-2 text-sm">{item.q}</h5>
-                        <p className="text-slate-600 text-sm leading-relaxed">{item.a}</p>
+                <section className="pt-6">
+                  <h3 className="mb-5 font-display text-[15px] font-semibold text-ink">Questions fréquentes</h3>
+                  <dl className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+                    {SUBSCRIPTION_FAQ.map(item => (
+                      <div key={item.q}>
+                        <dt className="text-sm font-medium text-ink">{item.q}</dt>
+                        <dd className="mt-1.5 text-sm leading-relaxed text-ink-soft">{item.a}</dd>
                       </div>
                     ))}
-                  </div>
-                </div>
+                  </dl>
+                </section>
               </div>
             )}
 
             {activeSection === 'security' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center max-w-2xl mx-auto mb-8">
-                  <h3 className="text-3xl font-bold text-slate-900 mb-3">Sécurité & Confidentialité</h3>
-                  <p className="text-slate-500 text-lg">Gérez vos données et la sécurité de votre compte.</p>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-display text-xl font-semibold text-ink">Sécurité et données</h2>
+                  <p className="mt-1 text-sm text-ink-soft">Gérez vos données personnelles et votre compte.</p>
                 </div>
 
-                {/* Danger Zone */}
-                <section className="bg-red-50 rounded-xl shadow-sm border border-red-100 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-red-100 bg-red-100/50">
-                    <h4 className="font-semibold text-red-800 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                      Zone de danger (RGPD)
-                    </h4>
+                <section className="rounded-2xl border border-red-200 bg-white">
+                  <div className="border-b border-red-100 px-5 py-4 sm:px-6">
+                    <h3 className="font-display text-[15px] font-semibold text-red-800">Supprimer le compte</h3>
                   </div>
-                  <div className="p-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div>
-                        <h5 className="font-medium text-red-900 mb-1">Supprimer mon compte</h5>
-                        <p className="text-sm text-red-700">
-                          Cette action est irréversible. Toutes vos données (factures, clients, paramètres) seront définitivement effacées conformément au RGPD.
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-300 shrink-0"
-                        onClick={() => {
-                          setDeleteConfirmation('');
-                          setIsDeleteModalOpen(true);
-                        }}
-                      >
-                        Supprimer mon compte
-                      </Button>
-                    </div>
+                  <div className="flex flex-col gap-4 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
+                    <p className="max-w-md text-sm leading-relaxed text-ink-soft">
+                      Vos factures, patients et paramètres seront définitivement effacés, conformément au RGPD. Téléchargez les PDF dont vous avez besoin avant de continuer.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="shrink-0 border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50"
+                      onClick={() => {
+                        setDeleteConfirmation('');
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      Supprimer mon compte
+                    </Button>
                   </div>
                 </section>
               </div>
@@ -549,40 +424,33 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onClose, 
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Supprimer votre compte ?"
+        title="Supprimer définitivement votre compte ?"
         className="max-w-md"
       >
-        <div className="space-y-4">
-          <div className="bg-red-50 p-4 rounded-lg border border-red-100 flex gap-3">
-            <svg className="w-6 h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            <p className="text-sm text-red-800">
-              Attention : cette action est <strong>définitive</strong>. Vous perdrez l'accès à toutes vos factures et données clients. Il n'y a pas de retour en arrière possible.
-            </p>
-          </div>
-
-          <p className="text-slate-600 text-sm">
-            Pour confirmer, veuillez taper <strong>supprimer</strong> ci-dessous.
-          </p>
-
-          <input
+        <p className="text-sm leading-relaxed text-ink-soft">
+          Toutes vos factures et données patients seront effacées. Il ne sera pas possible de les récupérer.
+        </p>
+        <Field label={<>Tapez <strong className="font-semibold text-ink">supprimer</strong> pour confirmer</>} htmlFor="delete-confirmation" className="mt-5">
+          <Input
+            id="delete-confirmation"
             type="text"
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
             placeholder="supprimer"
             value={deleteConfirmation}
             onChange={(e) => setDeleteConfirmation(e.target.value)}
+            autoComplete="off"
+            className="focus:border-red-600 focus:ring-red-600/12"
           />
-
-          <div className="flex gap-3 justify-end mt-6">
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Annuler</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white border-none"
-              disabled={deleteConfirmation !== 'supprimer' || isDeleting}
-              isLoading={isDeleting}
-              onClick={handleDeleteAccount}
-            >
-              Supprimer définitivement
-            </Button>
-          </div>
+        </Field>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>Annuler</Button>
+          <Button
+            variant="danger"
+            disabled={deleteConfirmation !== 'supprimer' || isDeleting}
+            isLoading={isDeleting}
+            onClick={handleDeleteAccount}
+          >
+            Supprimer mon compte
+          </Button>
         </div>
       </Modal>
     </div>

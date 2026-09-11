@@ -32,15 +32,20 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
+  const { pathname } = request.nextUrl
+
   // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
+  if (pathname.startsWith('/dashboard') && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/connexion'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
-  // Redirect to dashboard if already authenticated and trying to access landing page
-  if (request.nextUrl.pathname === '/' && user) {
+  // Signed-in users skip the landing and sign-in pages
+  // (/nouveau-mot-de-passe stays reachable: the reset link signs the user in first)
+  const guestOnlyPaths = ['/', '/connexion', '/inscription', '/mot-de-passe-oublie']
+  if (user && guestOnlyPaths.includes(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

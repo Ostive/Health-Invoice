@@ -272,8 +272,8 @@ export const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ invoice, profi
             <Text style={[styles.colPrice, styles.headerText]}>Prix</Text>
             <Text style={[styles.colTotal, styles.headerText]}>Montant</Text>
           </View>
-          {safeItems.map((item) => (
-            <View key={item.id || Math.random()} style={styles.tableRow}>
+          {safeItems.map((item, index) => (
+            <View key={item.id || index} style={styles.tableRow}>
               <Text style={styles.colDescription}>{safeText(item.description)}</Text>
               <Text style={styles.colQty}>{safeText(item.quantity)}</Text>
               <Text style={styles.colPrice}>{formatCurrency(item.unitPrice).replace(' €', '')}</Text>

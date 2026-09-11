@@ -237,8 +237,8 @@ export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ invoice, profi
             <Text style={[styles.tableCellPrice, styles.tableHeaderCell]}>Prix U.</Text>
             <Text style={[styles.tableCellTotal, styles.tableHeaderCell]}>Total</Text>
           </View>
-          {safeItems.map((item) => (
-            <View key={item.id || Math.random()} style={styles.tableBodyRow}>
+          {safeItems.map((item, index) => (
+            <View key={item.id || index} style={styles.tableBodyRow}>
               <View style={styles.tableRow}>
                 <Text style={styles.tableCellDesc}>{safeText(item.description)}</Text>
                 <Text style={styles.tableCellQty}>{safeText(item.quantity)}</Text>

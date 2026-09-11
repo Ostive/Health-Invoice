@@ -1,4 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+'use client'
+
+import React, { useEffect, useId, useRef } from 'react';
+import { cn } from '@/lib/cn';
 
 interface ModalProps {
     isOpen: boolean;
@@ -15,48 +18,60 @@ export const Modal: React.FC<ModalProps> = ({
     children,
     className = 'max-w-sm'
 }) => {
-    const modalRef = useRef<HTMLDivElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const titleId = useId();
 
-    // Close on Escape key
+    // Keep the latest onClose without re-running the open/close effect on every render
+    const onCloseRef = useRef(onClose);
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
+        onCloseRef.current = onClose;
+    });
 
-        if (isOpen) {
-            document.addEventListener('keydown', handleEscape);
-            // Prevent scrolling on body when modal is open
-            document.body.style.overflow = 'hidden';
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const previouslyFocused = document.activeElement as HTMLElement | null;
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onCloseRef.current();
+        };
+        const previousOverflow = document.body.style.overflow;
+
+        document.addEventListener('keydown', handleEscape);
+        document.body.style.overflow = 'hidden';
+        if (!dialogRef.current?.contains(document.activeElement)) {
+            dialogRef.current?.focus();
         }
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = previousOverflow;
+            previouslyFocused?.focus?.();
         };
-    }, [isOpen, onClose]);
-
-    // Close on click outside
-    const handleBackdropClick = (e: React.MouseEvent) => {
-        if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-            onClose();
-        }
-    };
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     return (
         <div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-            onClick={handleBackdropClick}
+            className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/40 p-4 backdrop-blur-[2px] animate-in fade-in duration-200 sm:items-center"
+            onMouseDown={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
         >
             <div
-                ref={modalRef}
-                className={`bg-white rounded-xl shadow-xl p-6 w-full transform transition-all scale-100 ${className}`}
+                ref={dialogRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
+                aria-labelledby={title ? titleId : undefined}
+                className={cn(
+                    'w-full rounded-2xl border border-rule bg-white p-6 shadow-pop outline-none',
+                    'animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200',
+                    className,
+                )}
             >
                 {title && (
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 text-center">{title}</h3>
+                    <h2 id={titleId} className="mb-4 font-display text-lg font-semibold text-ink">{title}</h2>
                 )}
                 {children}
             </div>

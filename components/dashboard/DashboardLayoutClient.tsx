@@ -11,15 +11,16 @@ import { FolderModal } from './modals/FolderModal';
 import { DeleteFolderConfirmationModal } from './modals/DeleteFolderConfirmationModal';
 import { BulkDeleteConfirmationModal } from './modals/BulkDeleteConfirmationModal';
 import { Button } from '../ui/button';
+import { Modal } from '../ui/modal';
+import { Logo } from '../ui/logo';
+import { Stamp } from '../ui/stamp';
+import { Icon } from '../ui/icon';
 import { PLAN_LIMITS } from '../../services/stripeService';
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     const {
-        user, profile, invoices, folders,
-        isBusy, isLoadingList, fetchError,
-        selectedFolderIds, selectedFolderId,
-        searchQuery, folderSearchQuery, showDateFilter, dateRange,
-        selectedInvoiceIds, displayedInvoices, currentInvoice,
+        profile,
+        selectedFolderIds, selectedInvoiceIds,
         isDeletingInvoice, isDeletingFolder, isSavingFolder,
         invoiceToDelete, setInvoiceToDelete, handleDeleteInvoice,
         folderToDelete, setFolderToDelete, confirmDeleteFolder,
@@ -27,51 +28,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         showUpgradeModal, setShowUpgradeModal, handleStartUpgrade,
         showOnboarding, setShowOnboarding, refreshProfile,
         toast, setToast,
-        // Bulk Delete Props
         showBulkDeleteModal, setShowBulkDeleteModal, bulkDeleteType, confirmBulkDelete,
-        // Sidebar actions
-        handleNewInvoice, handleBulkDeleteFolders, handleCreateFolderClick,
-        setFolderSearchQuery, setSelectedFolderId, toggleFolderSelection,
-        handleEditFolder, handleDeleteFolderClick, setSearchQuery, setShowDateFilter, setDateRange,
-        toggleSelectAllInvoices, handleBulkDeleteInvoices, handleInvoiceSelect,
-        toggleInvoiceSelection, promptDeleteInvoice, handleOpenSettings,
-        activeTab, setActiveTab
+        handleOpenSettings, onLogout,
     } = useDashboard();
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
-    // Close mobile sidebar when invoice is selected (handled in handleNewInvoice/handleInvoiceSelect in context? 
-    // No, context doesn't know about mobile sidebar state. We should handle it here or in Sidebar.)
-    // Let's wrap the handlers to close sidebar.
-
-    const handleNewInvoiceWrapper = () => {
-        handleNewInvoice();
-        setIsMobileSidebarOpen(false);
-    };
-
-    const handleInvoiceSelectWrapper = (inv: any) => {
-        handleInvoiceSelect(inv);
-        setIsMobileSidebarOpen(false);
-    };
-
-    const handleLogout = async () => {
-        try {
-            await fetch('/api/auth/logout', { method: 'POST' })
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('sb-') && key.includes('-auth-token')) {
-                    localStorage.removeItem(key)
-                }
-            })
-            sessionStorage.clear()
-            window.location.href = '/'
-        } catch (err) {
-            console.error("Logout failed:", err)
-            window.location.href = '/'
-        }
-    }
-
     return (
-        <div className="flex h-full bg-slate-50 overflow-hidden relative">
+        <div className="relative flex h-full overflow-hidden bg-paper">
             <DeleteConfirmationModal
                 isOpen={!!invoiceToDelete}
                 onClose={() => setInvoiceToDelete(null)}
@@ -101,63 +65,51 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 isLoading={isSavingFolder}
             />
 
-            {showUpgradeModal && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center animate-in zoom-in-95 duration-200">
-                        <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Passez à la vitesse supérieure</h2>
-                        <p className="text-slate-600 mb-6">Vous avez atteint la limite de {PLAN_LIMITS.free.maxInvoices} factures gratuites. Passez au plan PRO pour des factures illimitées et l'accès complet à l'IA.</p>
-                        <div className="space-y-3">
-                            <Button onClick={handleStartUpgrade} className="w-full py-3 text-lg">Devenir PRO - 29€/mois</Button>
-                            <button onClick={() => setShowUpgradeModal(false)} className="text-slate-400 text-sm hover:text-slate-600">Non merci, je reste limité</button>
-                        </div>
-                    </div>
+            <Modal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} className="max-w-md">
+                <Stamp tone="ink" size="md" rotate={-4}>Professionnel</Stamp>
+                <h2 className="mt-5 font-display text-xl font-semibold text-ink">Vos {PLAN_LIMITS.free.maxInvoices} factures gratuites sont utilisées</h2>
+                <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                    Passez à l’offre Professionnel pour créer des factures sans limite et dicter autant que vous le souhaitez.
+                </p>
+                <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button variant="ghost" onClick={() => setShowUpgradeModal(false)}>Plus tard</Button>
+                    <Button onClick={handleStartUpgrade}>Passer à l’offre Professionnel · 29 €/mois</Button>
                 </div>
-            )}
+            </Modal>
 
-            <aside className="hidden lg:block w-72 shrink-0 z-20 h-full shadow-xl shadow-slate-200/50">
-                <Sidebar
-                // Pass props that are needed or refactor Sidebar to use context. 
-                // For now, passing props to match existing Sidebar interface as much as possible, 
-                // but we will refactor Sidebar next to remove these props.
-                // Actually, let's pass NOTHING and let Sidebar use context.
-                // But Sidebar currently expects props. I will refactor Sidebar immediately after this.
-                // So I will pass nothing here and expect errors until I fix Sidebar.
-                />
+            <aside className="z-20 hidden h-full w-72 shrink-0 border-r border-rule lg:block">
+                <Sidebar />
             </aside>
 
             {isMobileSidebarOpen && (
-                <div className="lg:hidden fixed inset-0 z-50 flex">
-                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)}></div>
-                    <div className="relative w-72 bg-white h-full shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
-                        <div className="h-full flex flex-col">
+                <div className="fixed inset-0 z-50 flex lg:hidden">
+                    <div className="fixed inset-0 bg-ink/40 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={() => setIsMobileSidebarOpen(false)} aria-hidden="true" />
+                    <div role="dialog" aria-modal="true" aria-label="Menu" className="relative flex h-full w-[85vw] max-w-80 flex-col bg-white shadow-pop animate-in slide-in-from-left duration-300">
+                        <div className="min-h-0 flex-1">
                             <Sidebar onClose={() => setIsMobileSidebarOpen(false)} />
-                            <div className="p-4 bg-slate-50 border-t border-slate-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-sm font-semibold text-slate-700">Mon Compte</span>
-                                    {profile?.is_pro && <span className="bg-primary-100 text-primary-800 text-xs px-2 py-0.5 rounded-full font-bold">PRO</span>}
-                                </div>
-                                <Button variant="outline" className="w-full justify-center mb-2" onClick={handleOpenSettings}>Paramètres</Button>
-                                <Button variant="outline" className="w-full justify-center text-red-600 border-red-100 hover:bg-red-50" onClick={handleLogout}>Déconnexion</Button>
-                            </div>
+                        </div>
+                        <div className="space-y-1 border-t border-rule p-3">
+                            <button onClick={() => { setIsMobileSidebarOpen(false); handleOpenSettings(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-paper">
+                                <Icon name="settings" className="text-ink-faint" />Paramètres
+                                {profile?.is_pro && <Stamp tone="ink" className="ml-auto">Pro</Stamp>}
+                            </button>
+                            <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-700 transition-colors hover:bg-red-50">
+                                <Icon name="logout" />Se déconnecter
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <main className="flex-1 flex flex-col h-full overflow-hidden relative min-w-0 bg-slate-100/50">
-                {/* Mobile Header Toggle */}
-                <div className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4 shrink-0 sticky top-0 z-10">
-                    <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-md mr-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <main className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b border-rule bg-white px-2 lg:hidden">
+                    <button onClick={() => setIsMobileSidebarOpen(true)} aria-label="Ouvrir le menu" className="rounded-lg p-2 text-ink transition-colors hover:bg-paper">
+                        <Icon name="menu" className="size-6" />
                     </button>
-                    <h1 className="text-lg font-semibold text-slate-800 truncate">Facturier.ai</h1>
+                    <Logo />
                 </div>
 
-                <div className="flex-1 overflow-hidden flex flex-col">
-                    {/* Main content wrapper */}
+                <div className="flex flex-1 flex-col overflow-hidden">
                     {children}
                 </div>
             </main>
