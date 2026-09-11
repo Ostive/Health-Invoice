@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
             profile = currentProfile
         }
 
-        const invoice = decryptInvoice(invoiceRow)
+        const invoice = { ...decryptInvoice(invoiceRow), dueDate: invoiceRow.due_date } // templates read dueDate, the row stores due_date
 
         const pdfDocument = getInvoicePDFTemplate(invoice, profile as Partial<UserProfile>)
         const stream = await renderToStream(pdfDocument)

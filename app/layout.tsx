@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={`${archivo.variable} ${plexMono.variable}`}>
+    <html lang="fr" data-scroll-behavior="smooth" className={`${archivo.variable} ${plexMono.variable}`}>
       <body className="flex h-dvh flex-col bg-paper font-sans text-ink antialiased">
         {children}
       </body>

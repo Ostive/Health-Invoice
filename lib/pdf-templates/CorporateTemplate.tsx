@@ -212,7 +212,7 @@ export const CorporateTemplate: React.FC<CorporateTemplateProps> = ({ invoice, p
   const formatCurrency = (amount: number) => {
     try {
       if (typeof amount !== 'number' || isNaN(amount)) return '0.00 €';
-      return amount.toFixed(2) + ' €';
+      return amount.toFixed(2).replace('.', ',') + ' €';
     } catch (e) {
       return '0.00 €';
     }

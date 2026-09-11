@@ -17,6 +17,9 @@ const A4_HEIGHT_MM = 297;
 const MM_TO_PX = 3.78; // Conversion factor at 96 DPI
 const ITEMS_PER_PAGE = 12; // Safe limit to prevent overflow before we implement complex height measurement
 
+// French amount format (12,60), same as the PDF templates
+const fmt = (n: number) => n.toFixed(2).replace('.', ',');
+
 // Default profile data
 const defaultProfile: Partial<UserProfile> = {
   full_name: 'Dr. Martin Dupont',
@@ -205,8 +208,8 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
             <tr key={item.id} className="border-b border-slate-100 last:border-0">
               <td className="py-3 text-slate-800">{item.description}</td>
               <td className="py-3 text-right text-slate-600">{item.quantity}</td>
-              <td className="py-3 text-right text-slate-600">{item.unitPrice.toFixed(2)} €</td>
-              <td className="py-3 text-right font-medium text-slate-900">{(item.quantity * item.unitPrice).toFixed(2)} €</td>
+              <td className="py-3 text-right text-slate-600">{fmt(item.unitPrice)} €</td>
+              <td className="py-3 text-right font-medium text-slate-900">{fmt(item.quantity * item.unitPrice)} €</td>
             </tr>
           ))}
         </tbody>
@@ -219,15 +222,15 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
         <div className="w-1/2 md:w-5/12">
           <div className="flex justify-between py-1 border-b border-slate-100">
             <span className="text-slate-600">Sous-total</span>
-            <span className="font-medium">{total.toFixed(2)} €</span>
+            <span className="font-medium">{fmt(total)} €</span>
           </div>
           <div className="flex justify-between py-1 border-b border-slate-100">
             <span className="text-slate-600">TVA (0%)</span>
-            <span className="font-medium">{tva.toFixed(2)} €</span>
+            <span className="font-medium">{fmt(tva)} €</span>
           </div>
           <div className="flex justify-between py-3 text-lg font-bold text-doc-800">
             <span>Total à payer</span>
-            <span>{(total + tva).toFixed(2)} €</span>
+            <span>{fmt(total + tva)} €</span>
           </div>
         </div>
       </div>
@@ -239,7 +242,7 @@ const ModernTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile,
         <p className="mb-2 text-slate-600 italic">{invoice.notes}</p>
       )}
       <p>TVA non applicable, art. 293 B du CGI ou soins exonérés art. 261 du CGI.</p>
-      {!profile.is_pro && <p>Généré par Facturier Soignant AI</p>}
+      {!profile.is_pro && <p>Généré par Facturier Soignant</p>}
     </div>
   </div>
 );
@@ -282,8 +285,8 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
             <tr key={item.id}>
               <td className="border border-slate-800 p-2">{item.description}</td>
               <td className="border border-slate-800 p-2 text-center">{item.quantity}</td>
-              <td className="border border-slate-800 p-2 text-right">{item.unitPrice.toFixed(2)}</td>
-              <td className="border border-slate-800 p-2 text-right">{(item.quantity * item.unitPrice).toFixed(2)}</td>
+              <td className="border border-slate-800 p-2 text-right">{fmt(item.unitPrice)}</td>
+              <td className="border border-slate-800 p-2 text-right">{fmt(item.quantity * item.unitPrice)}</td>
             </tr>
           ))}
         </tbody>
@@ -295,11 +298,11 @@ const ClassicTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
         <div className="w-5/12 border border-slate-800">
           <div className="flex justify-between p-2 border-b border-slate-800 bg-slate-50">
             <span className="font-bold">Total HT</span>
-            <span>{total.toFixed(2)} €</span>
+            <span>{fmt(total)} €</span>
           </div>
           <div className="flex justify-between p-2 bg-slate-800 text-white font-bold text-base">
             <span>Net à Payer</span>
-            <span>{(total + tva).toFixed(2)} €</span>
+            <span>{fmt(total + tva)} €</span>
           </div>
         </div>
       </div>
@@ -350,8 +353,8 @@ const MinimalistTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, prof
             <tr key={item.id} className="border-b border-slate-100">
               <td className="py-3">{item.description}</td>
               <td className="py-3 text-right text-slate-500">{item.quantity}</td>
-              <td className="py-3 text-right text-slate-500">{item.unitPrice.toFixed(2)}</td>
-              <td className="py-3 text-right">{(item.quantity * item.unitPrice).toFixed(2)}</td>
+              <td className="py-3 text-right text-slate-500">{fmt(item.unitPrice)}</td>
+              <td className="py-3 text-right">{fmt(item.quantity * item.unitPrice)}</td>
             </tr>
           ))}
         </tbody>
@@ -362,7 +365,7 @@ const MinimalistTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, prof
       <div className="flex justify-end mb-12">
         <div className="text-right">
           <p className="text-xs text-slate-500 mb-1">Total (EUR)</p>
-          <p className="text-4xl font-light">{(total + tva).toFixed(2)}</p>
+          <p className="text-4xl font-light">{fmt(total + tva)}</p>
         </div>
       </div>
     )}
@@ -370,7 +373,7 @@ const MinimalistTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, prof
     <div className="mt-auto pt-4">
       {isLastPage && invoice.notes && <p className="text-xs text-slate-500 mb-4">{invoice.notes}</p>}
       <div className="h-1 w-12 bg-black mb-2"></div>
-      {!profile.is_pro && <p className="text-[10px] text-slate-400">Facturier Soignant AI</p>}
+      {!profile.is_pro && <p className="text-[10px] text-slate-400">Facturier Soignant</p>}
     </div>
   </div>
 );
@@ -417,8 +420,8 @@ const ElegantTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
             <tr key={item.id}>
               <td className="py-3 border-b border-slate-100 text-slate-700">{item.description}</td>
               <td className="py-3 border-b border-slate-100 text-center text-slate-500">{item.quantity}</td>
-              <td className="py-3 border-b border-slate-100 text-right text-slate-500">{item.unitPrice.toFixed(2)}</td>
-              <td className="py-3 border-b border-slate-100 text-right font-medium text-slate-800">{(item.quantity * item.unitPrice).toFixed(2)}</td>
+              <td className="py-3 border-b border-slate-100 text-right text-slate-500">{fmt(item.unitPrice)}</td>
+              <td className="py-3 border-b border-slate-100 text-right font-medium text-slate-800">{fmt(item.quantity * item.unitPrice)}</td>
             </tr>
           ))}
         </tbody>
@@ -430,11 +433,11 @@ const ElegantTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profile
         <div className="w-64 bg-slate-50 p-4 rounded-lg border border-slate-100">
           <div className="flex justify-between mb-1 text-slate-600 text-xs">
             <span>Total HT</span>
-            <span>{total.toFixed(2)} €</span>
+            <span>{fmt(total)} €</span>
           </div>
           <div className="flex justify-between items-center pt-2 border-t border-slate-200">
             <span className="text-gold-600 font-bold text-base font-serif italic">Total</span>
-            <span className="text-lg font-bold text-slate-900">{(total + tva).toFixed(2)} €</span>
+            <span className="text-lg font-bold text-slate-900">{fmt(total + tva)} €</span>
           </div>
         </div>
       </div>
@@ -490,8 +493,8 @@ const CorporateTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profi
               <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                 <td className="py-2 px-3 text-slate-800 font-medium">{item.description}</td>
                 <td className="py-2 px-3 text-right text-slate-600">{item.quantity}</td>
-                <td className="py-2 px-3 text-right text-slate-600">{item.unitPrice.toFixed(2)}</td>
-                <td className="py-2 px-3 text-right font-bold text-slate-900">{(item.quantity * item.unitPrice).toFixed(2)}</td>
+                <td className="py-2 px-3 text-right text-slate-600">{fmt(item.unitPrice)}</td>
+                <td className="py-2 px-3 text-right font-bold text-slate-900">{fmt(item.quantity * item.unitPrice)}</td>
               </tr>
             ))}
           </tbody>
@@ -503,11 +506,11 @@ const CorporateTemplate: React.FC<TemplateProps> = ({ invoice, total, tva, profi
           <div className="w-64">
             <div className="flex justify-between py-2 border-b border-slate-200">
               <span className="font-medium text-slate-600">Total HT</span>
-              <span className="font-bold text-slate-900">{total.toFixed(2)} €</span>
+              <span className="font-bold text-slate-900">{fmt(total)} €</span>
             </div>
             <div className="flex justify-between py-3 bg-slate-900 text-white px-3 mt-2 rounded-xs shadow-lg">
               <span className="font-bold uppercase tracking-wider">Net à payer</span>
-              <span className="font-bold text-lg">{(total + tva).toFixed(2)} €</span>
+              <span className="font-bold text-lg">{fmt(total + tva)} €</span>
             </div>
           </div>
         </div>

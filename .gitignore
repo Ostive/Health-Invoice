@@ -10,6 +10,7 @@
 /playwright-report/
 /test-results/
 /e2e/.auth/
+/review-output/
 test_output.txt
 
 # next.js

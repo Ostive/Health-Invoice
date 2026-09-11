@@ -48,8 +48,16 @@ Application disponible sur [http://localhost:3000](http://localhost:3000).
 
 ```bash
 npm test           # tests unitaires
-npx playwright test  # tests end-to-end (nécessite E2E_EMAIL et E2E_PASSWORD d’un compte de test)
+npm run test:e2e   # tests end-to-end Playwright (site public, factures, PDF, IA)
 ```
+
+Les tests end-to-end utilisent un compte dédié, distinct du compte de démonstration. Pour le créer :
+
+```bash
+SEED_EMAIL=e2e.soignant@example.com SEED_PASSWORD='un-mot-de-passe-Fort!1' npm run db:seed -- --remote
+```
+
+puis renseigner `E2E_EMAIL` et `E2E_PASSWORD` dans `.env.test.local` (ignoré par git), lu automatiquement par Playwright. Les tests IA appellent réellement Gemini.
 
 ### Données de démonstration
 

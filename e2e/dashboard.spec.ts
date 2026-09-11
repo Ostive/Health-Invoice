@@ -62,13 +62,17 @@ test('télécharger le PDF d’une facture payée : un vrai fichier PDF', async 
     expect(bytes.length).toBeGreaterThan(2_000);
 });
 
-test('la limite de l’offre gratuite propose de passer Pro', async ({ page }) => {
+test('mode démo : « Nouvelle facture » ouvre une facture vierge, sans limite', async ({ page }) => {
     await page.goto('/dashboard');
     const sidebar = page.getByRole('complementary');
-    // The quota is computed from the invoice list: wait until it is loaded
+    // The demo account already has 5 invoices: with the quota on, the upgrade dialog would open instead
     await expect(sidebar.getByText('Jeanne Lefèvre').first()).toBeVisible();
+    await expect(sidebar.getByText(/factures gratuites/)).toBeHidden();
+
     await sidebar.getByRole('button', { name: 'Nouvelle facture' }).click();
-    await expect(page.getByRole('dialog')).toContainText('factures gratuites sont utilisées');
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByText('Nouvelle', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Nom complet')).toHaveValue('');
 });
 
 test('chaque rubrique a sa propre URL', async ({ page }) => {

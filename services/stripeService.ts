@@ -88,3 +88,6 @@ export const PLAN_LIMITS = {
         aiGenerations: Infinity
     }
 };
+
+// Demo mode: the free-plan invoice quota only applies when NEXT_PUBLIC_ENFORCE_PLAN_LIMITS=true
+export const PLAN_LIMITS_ENFORCED = process.env.NEXT_PUBLIC_ENFORCE_PLAN_LIMITS === 'true';

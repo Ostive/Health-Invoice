@@ -7,7 +7,7 @@ import { Button } from '../ui/button';
 import { Stamp, StatusStamp } from '../ui/stamp';
 import { Logo } from '../ui/logo';
 import { Icon } from '../ui/icon';
-import { PLAN_LIMITS } from '../../services/stripeService';
+import { PLAN_LIMITS, PLAN_LIMITS_ENFORCED } from '../../services/stripeService';
 import { getFolderColorClass, getFolderBgClass } from './modals/FolderModal';
 import { useDashboard } from './DashboardContext';
 import { cn } from '@/lib/cn';
@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                             <Icon name="plus" strokeWidth={2.25} />
                             Nouvelle facture
                         </Button>
-                        {!profile?.is_pro && (
+                        {PLAN_LIMITS_ENFORCED && !profile?.is_pro && (
                             <button onClick={() => setShowUpgradeModal(true)} className="group mt-3 block w-full text-left">
                                 <span className="flex items-center justify-between text-xs text-ink-soft">
                                     <span><span className="font-mono tabular text-ink">{Math.min(invoices.length, freeQuota)}/{freeQuota}</span> factures gratuites</span>
@@ -304,60 +304,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                 const isCurrent = currentInvoice?.id === inv.id;
                                 const isSelected = selectedInvoiceIds.has(inv.id);
                                 return (
-                                    <li key={inv.id}>
-                                        <div
-                                            role="button"
-                                            tabIndex={0}
+                                    <li
+                                        key={inv.id}
+                                        className={cn(
+                                            'group relative rounded-lg border transition-colors',
+                                            isCurrent ? 'border-primary-200 bg-primary-50' : isSelected ? 'border-transparent bg-primary-50/60' : 'border-transparent hover:bg-paper',
+                                        )}
+                                    >
+                                        {/* Checkbox, open and delete are siblings: interactive controls must not be nested */}
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleInvoiceSelection(inv.id)}
+                                            aria-label={`Sélectionner la facture de ${inv.client.name || 'patient sans nom'}`}
+                                            className={cn(
+                                                'absolute left-3 top-[15px] z-10 size-3.5 accent-primary-600 transition-opacity',
+                                                selectedInvoiceIds.size > 0 ? 'opacity-100' : 'opacity-0 focus:opacity-100 group-hover:opacity-100',
+                                            )}
+                                        />
+                                        <button
+                                            type="button"
                                             aria-current={isCurrent || undefined}
                                             onClick={() => { handleInvoiceSelect(inv); onClose?.(); }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    handleInvoiceSelect(inv);
-                                                    onClose?.();
-                                                }
-                                            }}
-                                            className={cn(
-                                                'group relative block rounded-lg border px-3 py-2.5 transition-colors',
-                                                isCurrent ? 'border-primary-200 bg-primary-50' : isSelected ? 'border-transparent bg-primary-50/60' : 'border-transparent hover:bg-paper',
-                                            )}
+                                            className="block w-full rounded-lg py-2.5 pl-[34px] pr-3 text-left"
                                         >
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={() => toggleInvoiceSelection(inv.id)}
-                                                    aria-label={`Sélectionner la facture de ${inv.client.name || 'patient sans nom'}`}
-                                                    className={cn(
-                                                        'size-3.5 shrink-0 accent-primary-600 transition-opacity',
-                                                        selectedInvoiceIds.size > 0 ? 'opacity-100' : 'opacity-0 focus:opacity-100 group-hover:opacity-100',
-                                                    )}
-                                                />
+                                            <span className="flex items-center gap-2">
                                                 <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', isCurrent ? 'text-primary-900' : 'text-ink')}>
                                                     {inv.client.name || 'Patient sans nom'}
                                                 </span>
                                                 <span className="shrink-0 font-mono text-xs tabular text-ink">{formatEUR(invoiceTotal(inv.items))}</span>
-                                            </div>
-                                            <div className="mt-1.5 flex items-center gap-2 pl-[22px]">
+                                            </span>
+                                            <span className="mt-1.5 flex items-center gap-2 pr-7">
                                                 <StatusStamp status={inv.status} />
                                                 {invFolder && (
-                                                    <span className={cn('size-2 shrink-0 rounded-full', getFolderBgClass(invFolder.color))} title={invFolder.name} aria-label={`Dossier ${invFolder.name}`} />
+                                                    <span className={cn('size-2 shrink-0 rounded-full', getFolderBgClass(invFolder.color))} title={invFolder.name}>
+                                                        <span className="sr-only">Dossier {invFolder.name}</span>
+                                                    </span>
                                                 )}
                                                 <span className="font-mono text-[11px] text-ink-faint">
                                                     {searchQuery && inv.number.toLowerCase().includes(searchQuery.toLowerCase())
                                                         ? inv.number
                                                         : new Date(inv.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                                                 </span>
-                                                <button
-                                                    onClick={(e) => promptDeleteInvoice(inv.id, e)}
-                                                    aria-label={`Supprimer la facture de ${inv.client.name || 'patient sans nom'}`}
-                                                    className="ml-auto rounded-md p-1 text-ink-faint transition-[opacity,color,background-color] hover:bg-red-50 hover:text-red-600 focus:opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                                                >
-                                                    <Icon name="trash" className="size-3.5" />
-                                                </button>
-                                            </div>
-                                        </div>
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => promptDeleteInvoice(inv.id, e)}
+                                            aria-label={`Supprimer la facture de ${inv.client.name || 'patient sans nom'}`}
+                                            className="absolute bottom-2 right-2 rounded-md p-1 text-ink-faint transition-[opacity,color,background-color] hover:bg-red-50 hover:text-red-600 focus:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                        >
+                                            <Icon name="trash" className="size-3.5" />
+                                        </button>
                                     </li>
                                 );
                             })}

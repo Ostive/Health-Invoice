@@ -215,7 +215,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ invoice, profile
   const formatCurrency = (amount: number) => {
     try {
       if (typeof amount !== 'number' || isNaN(amount)) return '0.00 €';
-      return amount.toFixed(2) + ' €';
+      return amount.toFixed(2).replace('.', ',') + ' €';
     } catch (e) {
       return '0.00 €';
     }
@@ -313,7 +313,7 @@ export const ModernTemplate: React.FC<ModernTemplateProps> = ({ invoice, profile
               TVA non applicable, art. 293 B du CGI ou soins exonérés art. 261 du CGI.
             </Text>
           )}
-          {!safeProfile.is_pro ? <Text style={styles.footerText}>Généré par Facturier Soignant AI</Text> : null}
+          {!safeProfile.is_pro ? <Text style={styles.footerText}>Généré par Facturier Soignant</Text> : null}
         </View>
       </Page>
     </Document>

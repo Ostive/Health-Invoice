@@ -37,19 +37,19 @@ export function Features() {
                     </p>
                 </Reveal>
 
-                <dl className="divide-y divide-rule border-y border-rule">
+                <ul className="divide-y divide-rule border-y border-rule">
                     {FEATURES.map((feature, i) => (
-                        <Reveal key={feature.title} delay={i * 80} className="flex gap-5 py-7">
+                        <Reveal as="li" key={feature.title} delay={i * 80} className="flex gap-5 py-7">
                             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600">
                                 <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={feature.icon} /></svg>
                             </span>
                             <div>
-                                <dt className="font-display text-lg font-semibold text-ink">{feature.title}</dt>
-                                <dd className="mt-1.5 leading-relaxed text-ink-soft">{feature.description}</dd>
+                                <h3 className="font-display text-lg font-semibold text-ink">{feature.title}</h3>
+                                <p className="mt-1.5 leading-relaxed text-ink-soft">{feature.description}</p>
                             </div>
                         </Reveal>
                     ))}
-                </dl>
+                </ul>
             </div>
         </section>
     )

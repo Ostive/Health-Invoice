@@ -36,7 +36,7 @@ export const InvoiceWorkspace = () => {
         activeTab, setActiveTab,
         isBusy, isSaving, isExporting, setIsExporting,
         handleNewInvoice, handleSaveInvoice, promptDeleteInvoice,
-        setToast, folders, invoiceToDelete, patients, hasUnsavedChanges, invoices
+        setToast, folders, patients, hasUnsavedChanges, invoices
     } = useDashboard();
 
     const [showUnsavedModal, setShowUnsavedModal] = React.useState(false);
@@ -217,9 +217,7 @@ export const InvoiceWorkspace = () => {
                     )}
                 </div>
 
-                {invoiceToDelete ? (
-                    <span className="text-sm font-medium text-red-700">Suppression…</span>
-                ) : currentInvoice && (
+                {currentInvoice && (
                     <div className="flex items-center gap-1 md:gap-2">
                         <Button variant="ghost" size="sm" onClick={handleClose} className="hidden md:inline-flex" disabled={isBusy}>
                             <Icon name="close" />Fermer

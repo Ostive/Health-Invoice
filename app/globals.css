@@ -22,7 +22,8 @@
   --color-desk: #e7eaef;
   --color-ink: #191b26;
   --color-ink-soft: #545a6b;
-  --color-ink-faint: #8a90a0;
+  /* 4.7:1 on paper, 5.2:1 on white — the lightest grey allowed for small text (WCAG AA) */
+  --color-ink-faint: #666d7c;
   --color-rule: #dce0e6;
   --color-rule-strong: #c5cbd4;
 

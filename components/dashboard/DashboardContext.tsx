@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Invoice, InvoiceStatus, UserProfile, Folder } from '../../types/index';
 import { InvoiceService } from '../../services/invoiceService';
 import { PatientService } from '../../services/patientService';
-import { subscribeToPro, PLAN_LIMITS } from '../../services/stripeService';
+import { subscribeToPro, PLAN_LIMITS, PLAN_LIMITS_ENFORCED } from '../../services/stripeService';
 import { ToastType } from '../ui/toast';
 import { PatientInput } from '../../lib/schemas';
 
@@ -281,7 +281,7 @@ export function DashboardProvider({
     const handleNewInvoice = () => {
         // Wait for the invoice list: the free-plan quota below is computed from it
         if (isBusy || isLoadingList) return;
-        if (!profile?.is_pro && invoices.length >= PLAN_LIMITS.free.maxInvoices) {
+        if (PLAN_LIMITS_ENFORCED && !profile?.is_pro && invoices.length >= PLAN_LIMITS.free.maxInvoices) {
             setShowUpgradeModal(true);
             return;
         }

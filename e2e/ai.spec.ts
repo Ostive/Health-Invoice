@@ -35,7 +35,8 @@ test('l’assistant remplit les prestations à partir d’un texte', async ({ pa
 
     await expect(lines).not.toHaveCount(before, { timeout: 45_000 });
     const descriptions = await lines.evaluateAll(inputs => inputs.map(input => (input as HTMLInputElement).value));
-    expect(descriptions.join(' ')).toMatch(/pansement/i);
+    // Only the lines added by the assistant (the draft already contains a dressing line)
+    expect(descriptions.slice(before).join(' ')).toMatch(/pansement/i);
     // Nothing is saved: the demo invoice stays as seeded
 });
 

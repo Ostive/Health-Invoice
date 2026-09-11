@@ -161,7 +161,7 @@ export const MinimalistTemplate: React.FC<MinimalistTemplateProps> = ({ invoice,
   const formatCurrency = (amount: number) => {
     try {
       if (typeof amount !== 'number' || isNaN(amount)) return '0.00';
-      return amount.toFixed(2);
+      return amount.toFixed(2).replace('.', ',');
     } catch (e) {
       return '0.00';
     }
@@ -223,7 +223,7 @@ export const MinimalistTemplate: React.FC<MinimalistTemplateProps> = ({ invoice,
         <View style={styles.footer}>
           {safeInvoice.notes ? <Text style={styles.footerNotes}>{safeText(safeInvoice.notes)}</Text> : null}
           <View style={styles.footerLine} />
-          {!safeProfile.is_pro ? <Text style={styles.footerText}>Facturier Soignant AI</Text> : null}
+          {!safeProfile.is_pro ? <Text style={styles.footerText}>Facturier Soignant</Text> : null}
         </View>
       </Page>
     </Document>
