@@ -15,5 +15,5 @@ export async function api<T>(url: string, { json, ...init }: RequestInit & { jso
 async function errorMessageFrom(response: Response): Promise<string> {
     const body = (await response.json().catch(() => ({}))) as { error?: string; errors?: string[] };
     const message = body.error || response.statusText || `Erreur ${response.status}`;
-    return body.errors?.length ? `${message}: ${body.errors.join(', ')}` : message;
+    return body.errors?.length ? `${message} : ${body.errors.join(', ')}` : message;
 }

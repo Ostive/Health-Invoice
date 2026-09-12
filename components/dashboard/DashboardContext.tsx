@@ -213,6 +213,8 @@ export function DashboardProvider({ children, user, data }: {
                 const ids = selectedFolderIds;
                 await InvoiceService.deleteMultipleFolders([...ids]);
                 setFolders(prev => prev.filter(f => !ids.has(f.id)));
+                // Deleting a folder unlinks it from its invoices in the database (ON DELETE SET NULL)
+                setInvoices(prev => prev.map(i => i.folderId && ids.has(i.folderId) ? { ...i, folderId: null } : i));
                 if (selectedFolderId && ids.has(selectedFolderId)) setSelectedFolderId(null);
                 setSelectedFolderIds(new Set());
                 setToast({ message: `${ids.size} dossiers supprimés`, type: 'success' });
@@ -270,6 +272,8 @@ export function DashboardProvider({ children, user, data }: {
         try {
             await InvoiceService.deleteFolder(folderToDelete.id);
             setFolders(prev => prev.filter(f => f.id !== folderToDelete.id));
+            // Deleting a folder unlinks it from its invoices in the database (ON DELETE SET NULL)
+            setInvoices(prev => prev.map(i => i.folderId === folderToDelete.id ? { ...i, folderId: null } : i));
             if (selectedFolderId === folderToDelete.id) setSelectedFolderId(null);
             setToast({ message: 'Dossier supprimé', type: 'success' });
             setFolderToDelete(null);

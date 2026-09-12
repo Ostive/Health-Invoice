@@ -34,7 +34,7 @@ export async function checkRateLimit(userId: string, action: AuditAction): Promi
     if (count !== null && count >= config.limit) {
         return {
             success: false,
-            message: `Rate limit exceeded. Maximum ${config.limit} requests per ${config.windowSeconds} seconds.`
+            message: `Trop de demandes d’affilée (${config.limit} par ${config.windowSeconds} secondes). Patientez un instant, puis réessayez.`
         };
     }
 

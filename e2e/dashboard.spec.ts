@@ -195,3 +195,51 @@ test('patients : ajouter, modifier puis supprimer', async ({ page }) => {
     await dialog.getByRole('button', { name: 'Supprimer le patient' }).click();
     await expect(main.getByText(name)).toHaveCount(0);
 });
+
+test('une facture reste enregistrable après la suppression de son dossier', async ({ page }) => {
+    await page.goto('/dashboard');
+    const sidebar = page.getByRole('complementary');
+    const folder = `Dossier e2e ${Date.now()}`;
+    const patient = `Patient e2e ${Date.now()}`;
+
+    await sidebar.getByRole('button', { name: 'Créer un dossier' }).click();
+    await page.getByLabel('Nom du dossier').fill(folder);
+    await page.getByRole('button', { name: 'Créer le dossier' }).click();
+    await expect(sidebar.getByRole('button', { name: folder, exact: true })).toBeVisible();
+
+    await sidebar.getByRole('button', { name: 'Nouvelle facture' }).click();
+    await page.getByLabel('Nom complet').fill(patient);
+    await page.getByLabel('Dossier', { exact: true }).click();
+    await page.getByRole('option', { name: folder }).click();
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(page.getByText(/Facture sauvegardée/)).toBeVisible();
+    await page.getByRole('button', { name: 'Fermer la notification' }).click();
+
+    // The folder goes, the invoice stays: the database unlinks it, saving must still work
+    await sidebar.getByRole('button', { name: `Supprimer le dossier ${folder}` }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer le dossier' }).click();
+    await expect(sidebar.getByText(folder)).toHaveCount(0);
+
+    await page.getByLabel('Notes').fill('Enregistré après suppression du dossier');
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(page.getByText(/Facture sauvegardée/)).toBeVisible();
+    await expect(page.getByText(/Erreur de sauvegarde/)).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Supprimer', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer la facture' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test('les erreurs de l’API sont compréhensibles', async ({ request }) => {
+    const incomplete = await request.post('/api/invoices', { data: { invoice: { date: '2026-09-12', dueDate: '2026-10-12', client: { name: '' }, items: [] } } });
+    expect(incomplete.status()).toBe(400);
+    expect(await incomplete.json()).toMatchObject({ error: 'Le formulaire est incomplet', errors: expect.arrayContaining(['Le nom du client est requis']) });
+
+    const badId = await request.delete('/api/invoices/pas-un-identifiant');
+    expect(badId.status()).toBe(400);
+    expect((await badId.json()).errors).toContain('Identifiant invalide');
+
+    const unknownInvoice = await request.post('/api/generate-pdf', { data: { invoiceId: '00000000-0000-4000-8000-000000000000' } });
+    expect(unknownInvoice.status()).toBe(404);
+    expect((await unknownInvoice.json()).error).toBe('Facture introuvable.');
+});

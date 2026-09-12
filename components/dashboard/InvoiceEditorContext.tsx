@@ -54,23 +54,6 @@ function createEmptyInvoice(folderId: string | null): Invoice {
     };
 }
 
-/** API save errors, in words a practitioner understands */
-function saveErrorMessage(error: unknown): string {
-    const message = errorMessage(error);
-    if (message.includes('Client name is required') || message.includes('Le nom du client est requis')) return 'Le nom du client est obligatoire.';
-    if (message.includes('Invoice date is required')) return 'La date de la facture est obligatoire.';
-    if (message.includes('At least one item is required') || message.includes('Au moins une prestation est requise')) return 'Au moins une prestation est requise.';
-    if (message.includes('Validation failed')) {
-        const details = message.replace('Validation failed:', '').trim();
-        // Zod's generic message for a missing field
-        if (details.includes('expected string, received undefined')) {
-            return 'Erreur de validation : Un champ obligatoire (text) est manquant (ex: Nom du client, Date, Description).';
-        }
-        return `Erreur de validation : ${details}`;
-    }
-    return message;
-}
-
 /**
  * The invoice being edited. Which one is open comes from the URL, so an invoice can be linked,
  * reloaded and reached with back/forward; the provider only keeps the unsaved working copies.
@@ -144,7 +127,7 @@ export function InvoiceEditorProvider({ children }: { children: React.ReactNode 
             setToast({ message: `Facture sauvegardée : ${savedInvoice.number}`, type: 'success' });
             return true;
         } catch (error) {
-            setToast({ message: `Erreur de sauvegarde : ${saveErrorMessage(error)}`, type: 'error' });
+            setToast({ message: `Erreur de sauvegarde : ${errorMessage(error)}`, type: 'error' });
             return false;
         } finally {
             setIsSaving(false);

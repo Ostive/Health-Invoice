@@ -12,7 +12,7 @@ const ALLOWED_AUDIO_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg
 
 export const POST = apiRoute(ROUTE, async ({ user }, request) => {
     const { success, message } = await checkRateLimit(user.id, 'GENERATE_INVOICE_AI')
-    if (!success) throw tooManyRequests(message ?? 'Rate limit exceeded')
+    if (!success) throw tooManyRequests(message ?? 'Trop de demandes. Patientez un instant.')
 
     const formData = await request.formData()
     const audioFile = formData.get('audio')
@@ -25,7 +25,7 @@ export const POST = apiRoute(ROUTE, async ({ user }, request) => {
     }
 
     const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) throw new ApiError(500, 'Configuration serveur manquante', 'CONFIG_MISSING')
+    if (!apiKey) throw new ApiError(500, 'La dictée n’est pas configurée sur ce serveur (clé API manquante).', 'CONFIG_MISSING')
 
     const ai = new GoogleGenAI({ apiKey })
 

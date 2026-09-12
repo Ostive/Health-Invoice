@@ -14,7 +14,7 @@ import { errorMessage } from '@/lib/errors';
 const PAGE_SIZE = 24;
 
 export const PatientsView = () => {
-    const { patients, refreshPatients, setToast } = useDashboard();
+    const { patients, setInvoices, refreshPatients, setToast } = useDashboard();
     const [isBusy, setIsBusy] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingPatient, setEditingPatient] = useState<PatientInput | null>(null);
@@ -45,6 +45,8 @@ export const PatientsView = () => {
         setIsBusy(true);
         try {
             await PatientService.delete(patientToDelete);
+            // Deleting a patient unlinks them from their invoices in the database (ON DELETE SET NULL)
+            setInvoices(prev => prev.map(i => i.patientId === patientToDelete ? { ...i, patientId: null } : i));
             await refreshPatients();
             setToast({ message: 'Patient supprimé', type: 'success' });
         } catch (err) {

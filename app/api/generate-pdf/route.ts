@@ -12,7 +12,7 @@ const ROUTE = 'api/generate-pdf'
 
 export const POST = apiRoute(ROUTE, async (session, request) => {
     const { success, message } = await checkRateLimit(session.user.id, 'GENERATE_PDF')
-    if (!success) throw tooManyRequests(message ?? 'Rate limit exceeded')
+    if (!success) throw tooManyRequests(message ?? 'Trop de demandes. Patientez un instant.')
 
     const { invoiceId } = PdfRequestSchema.parse(await request.json())
 
@@ -25,7 +25,7 @@ export const POST = apiRoute(ROUTE, async (session, request) => {
         chunks.push(Buffer.from(chunk))
     }
     const pdfBuffer = Buffer.concat(chunks)
-    if (pdfBuffer.length === 0) throw new ApiError(500, 'Generated PDF buffer is empty', 'PDF_EMPTY')
+    if (pdfBuffer.length === 0) throw new ApiError(500, 'Le PDF généré est vide. Réessayez.', 'PDF_EMPTY')
 
     logAuditAction({ action: 'GENERATE_PDF', resourceType: 'invoice', resourceId: invoiceId, userId: session.user.id })
 

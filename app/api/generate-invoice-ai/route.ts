@@ -16,11 +16,11 @@ export const POST = apiRoute(ROUTE, async ({ user }, request) => {
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
         console.error(`[${ROUTE}] GEMINI_API_KEY is missing`)
-        throw new ApiError(500, 'Configuration serveur manquante (Clé API Gemini)', 'CONFIG_MISSING')
+        throw new ApiError(500, 'L’assistant IA n’est pas configuré sur ce serveur (clé API manquante).', 'CONFIG_MISSING')
     }
 
     const { success, message } = await checkRateLimit(user.id, 'GENERATE_INVOICE_AI')
-    if (!success) throw tooManyRequests(message ?? 'Rate limit exceeded')
+    if (!success) throw tooManyRequests(message ?? 'Trop de demandes. Patientez un instant.')
 
     const ai = new GoogleGenAI({ apiKey })
 
